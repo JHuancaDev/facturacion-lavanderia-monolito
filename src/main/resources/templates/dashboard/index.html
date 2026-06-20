@@ -1,0 +1,77 @@
+<!-- templates/dashboard/index.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <h2 class="mb-4">Dashboard</h2>
+    
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Pedidos</h5>
+                    <h2 th:text="${totalPedidos}">0</h2>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Registrados</h5>
+                    <h2 th:text="${pedidosRegistrados}">0</h2>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title">En Proceso</h5>
+                    <h2 th:text="${pedidosProceso}">0</h2>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Finalizados</h5>
+                    <h2 th:text="${pedidosFinalizados}">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h5>Accesos Rápidos</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <a th:href="@{/pedidos/nuevo}" class="btn btn-primary w-100 mb-2">
+                        📝 Nuevo Pedido
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a th:href="@{/pedidos}" class="btn btn-info w-100 mb-2">
+                        📋 Ver Pedidos
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a th:href="@{/servicios}" class="btn btn-warning w-100 mb-2">
+                        ⚙️ Gestionar Servicios
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a th:href="@{/logout}" class="btn btn-danger w-100 mb-2">
+                        🚪 Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

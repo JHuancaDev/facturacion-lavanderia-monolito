@@ -1,0 +1,65 @@
+<!-- src/main/resources/templates/pedido/detalle.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4>Detalle del Pedido #<span th:text="${pedido.id}"></span></h4>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <strong>Cliente:</strong> 
+                    <span th:text="${pedido.cliente.nombres} + ' ' + ${pedido.cliente.apellidoPaterno}"></span>
+                </div>
+                <div class="col-md-6">
+                    <strong>Estado:</strong> 
+                    <span class="badge" th:text="${pedido.estado}" 
+                          th:classappend="${pedido.estado == 'REGISTRADO' ? 'bg-warning' : 
+                                         (pedido.estado == 'EN_PROCESO' ? 'bg-info' : 
+                                         (pedido.estado == 'FINALIZADO' ? 'bg-success' : 'bg-secondary'))}">
+                    </span>
+                </div>
+            </div>
+            
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Servicio</th>
+                        <th>Peso</th>
+                        <th>Color</th>
+                        <th>Subtotal</th>
+                        <th>Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="detalle, stat : ${pedido.detalles}">
+                        <td th:text="${stat.index + 1}"></td>
+                        <td th:text="${detalle.servicio.nameService}"></td>
+                        <td th:text="${detalle.peso} + ' kg'"></td>
+                        <td th:text="${detalle.color}"></td>
+                        <td th:text="'S/ ' + ${detalle.subtotal}"></td>
+                        <td th:text="${detalle.observaciones}"></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="table-primary">
+                        <th colspan="4" class="text-end">TOTAL:</th>
+                        <th colspan="2" th:text="'S/ ' + ${pedido.montoTotal}"></th>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <div class="mt-3">
+                <a th:href="@{/pedidos}" class="btn btn-secondary">Volver</a>
+                <a th:href="@{/pedidos/asignar-ubicacion/__${pedido.id}__}" 
+                   th:if="${pedido.ubicacion == null}" 
+                   class="btn btn-warning">Asignar Ubicación</a>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

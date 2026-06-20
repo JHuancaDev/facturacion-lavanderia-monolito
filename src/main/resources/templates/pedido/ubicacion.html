@@ -1,0 +1,47 @@
+<!-- templates/pedido/ubicacion.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4>Asignar Ubicación - Pedido #<span th:text="${pedido.id}"></span></h4>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/pedidos/guardar-ubicacion}" method="post">
+                <input type="hidden" name="pedidoId" th:value="${pedido.id}">
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label>Código de Ubicación</label>
+                        <input type="text" name="codigoUbicacion" class="form-control" placeholder="Ej: A-01" required>
+                        <small class="text-muted">Formato: Letra-Número (A-01, B-03, etc.)</small>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>Estante</label>
+                        <input type="text" name="estante" class="form-control" placeholder="Ej: Estante 1" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>Balda</label>
+                        <input type="text" name="balda" class="form-control" placeholder="Ej: Balda 3" required>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <strong>Recomendación de ubicación:</strong>
+                    <ul>
+                        <li><strong>A</strong> - Lavado en seco</li>
+                        <li><strong>B</strong> - Lavado normal</li>
+                        <li><strong>C</strong> - Planchado</li>
+                        <li><strong>D</strong> - Edredones y prendas grandes</li>
+                    </ul>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Guardar Ubicación</button>
+                <a th:href="@{/pedidos}" class="btn btn-secondary">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

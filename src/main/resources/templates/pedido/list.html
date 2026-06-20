@@ -1,0 +1,246 @@
+<!-- src/main/resources/templates/pedido/list.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="content">
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between">
+            <h4>Lista de Pedidos</h4>
+            <a th:href="@{/pedidos/nuevo}" class="btn btn-light">+ Nuevo Pedido</a>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Teléfono</th>  <!-- Nueva columna -->
+                        <th>Servicios</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th>Ubicación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="pedido : ${pedidos}">
+                        <td th:text="${pedido.id}"></td>
+                        <td th:text="${pedido.cliente.nombres} + ' ' + ${pedido.cliente.apellidoPaterno}"></td>
+                        <td th:text="${pedido.cliente.telefono}"></td>  <!-- Mostrar teléfono -->
+                        <td>
+                            <span th:each="detalle, stat : ${pedido.detalles}">
+                                <span class="badge bg-info" th:text="${detalle.servicio.nameService}"></span>
+                                <span th:if="${!stat.last}">, </span>
+                            </span>
+                        </td>
+                        <td th:text="'S/ ' + ${pedido.montoTotal}"></td>
+                        <td>
+                            <select class="form-select form-select-sm estado-select" 
+                                    th:attr="data-pedido-id=${pedido.id}">
+                                <option th:each="est : ${T(dev.jhuanca.facturacion.enums.EstadoPedido).values()}"
+                                    th:value="${est}" 
+                                    th:text="${est}"
+                                    th:selected="${est == pedido.estado}">
+                                </option>
+                            </select>
+                        </td>
+                        <td>
+                            <a th:if="${pedido.ubicacion == null}"
+                                th:href="@{/pedidos/asignar-ubicacion/__${pedido.id}__}"
+                                class="btn btn-sm btn-warning">
+                                Asignar
+                            </a>
+                            <span th:if="${pedido.ubicacion != null}" 
+                                  th:text="${pedido.ubicacion.codigoUbicacion}"
+                                  class="badge bg-success">
+                            </span>
+                        </td>
+                        <td>
+                            <a th:href="@{/pedidos/detalle/__${pedido.id}__}" 
+                               class="btn btn-sm btn-info">Ver</a>
+                            
+                            <!-- Botón WhatsApp - Siempre visible si tiene teléfono -->
+                            <button th:if="${pedido.cliente.telefono != null and pedido.cliente.telefono != ''}"
+                                    class="btn btn-sm btn-success btn-whatsapp"
+                                    th:attr="data-pedido-id=${pedido.id}"
+                                    title="Enviar WhatsApp">
+                                📱 WhatsApp
+                            </button>
+                            
+                            <!-- Mensaje si no tiene teléfono -->
+                            <span th:if="${pedido.cliente.telefono == null or pedido.cliente.telefono == ''}"
+                                  class="text-muted small">
+                                Sin teléfono
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Función para cambiar estado
+        function cambiarEstado(pedidoId, nuevoEstado, selectElement) {
+            selectElement.disabled = true;
+            
+            mostrarMensaje('Actualizando estado...', 'info');
+            
+            fetch('/pedidos/cambiar-estado-json/' + pedidoId + '?estado=' + nuevoEstado, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error en la respuesta del servidor');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    selectElement.value = nuevoEstado;
+                    selectElement.setAttribute('data-current-value', nuevoEstado);
+                    mostrarMensaje(data.mensaje || 'Estado actualizado correctamente', 'success');
+                    actualizarFila(pedidoId, nuevoEstado);
+                } else {
+                    mostrarMensaje(data.mensaje || 'Error al actualizar el estado', 'danger');
+                    const valorAnterior = selectElement.getAttribute('data-current-value');
+                    selectElement.value = valorAnterior;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarMensaje('Error al actualizar el estado', 'danger');
+                const valorAnterior = selectElement.getAttribute('data-current-value');
+                if (valorAnterior) {
+                    selectElement.value = valorAnterior;
+                }
+            })
+            .finally(() => {
+                selectElement.disabled = false;
+            });
+        }
+        
+        function actualizarFila(pedidoId, nuevoEstado) {
+            const select = document.querySelector(`.estado-select[data-pedido-id="${pedidoId}"]`);
+            if (!select) return;
+            
+            const fila = select.closest('tr');
+            if (!fila) return;
+            
+            select.value = nuevoEstado;
+            
+            // Mostrar/ocultar botón WhatsApp según estado
+            const btnWhatsApp = fila.querySelector('.btn-whatsapp');
+            if (btnWhatsApp) {
+                // Solo mostrar WhatsApp si está FINALIZADO
+                if (nuevoEstado === 'FINALIZADO') {
+                    btnWhatsApp.style.display = 'inline-block';
+                } else {
+                    btnWhatsApp.style.display = 'none';
+                }
+            }
+        }
+        
+        function mostrarMensaje(mensaje, tipo) {
+            let alertDiv = document.querySelector('.alert-floating');
+            
+            if (!alertDiv) {
+                alertDiv = document.createElement('div');
+                alertDiv.className = 'alert-floating alert alert-' + tipo + ' position-fixed top-0 end-0 m-3';
+                alertDiv.style.zIndex = '9999';
+                alertDiv.style.minWidth = '300px';
+                alertDiv.style.maxWidth = '500px';
+                alertDiv.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                document.body.appendChild(alertDiv);
+            }
+            
+            alertDiv.textContent = mensaje;
+            alertDiv.className = 'alert-floating alert alert-' + tipo + ' position-fixed top-0 end-0 m-3';
+            alertDiv.style.display = 'block';
+            
+            clearTimeout(alertDiv._timeout);
+            alertDiv._timeout = setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Función para enviar WhatsApp
+        function enviarWhatsApp(id) {
+            // Mostrar mensaje de carga
+            const btn = document.querySelector(`.btn-whatsapp[data-pedido-id="${id}"]`);
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '⏳';
+            }
+            
+            mostrarMensaje('Generando enlace de WhatsApp...', 'info');
+            
+            fetch('/pedidos/' + id + '/whatsapp-link', {
+                method: 'GET'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al generar el enlace');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    mostrarMensaje(data.error, 'danger');
+                    return;
+                }
+                
+                // Abrir WhatsApp en una nueva pestaña
+                window.open(data.link, '_blank');
+                mostrarMensaje('WhatsApp abierto correctamente', 'success');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarMensaje('Error al abrir WhatsApp: ' + error.message, 'danger');
+            })
+            .finally(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '📱 WhatsApp';
+                }
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Eventos para selects de estado
+            document.querySelectorAll('.estado-select').forEach(select => {
+                const valorActual = select.value;
+                select.setAttribute('data-current-value', valorActual);
+                
+                select.addEventListener('change', function() {
+                    const pedidoId = this.getAttribute('data-pedido-id');
+                    const nuevoEstado = this.value;
+                    const valorAnterior = this.getAttribute('data-current-value');
+                    
+                    if (nuevoEstado === 'FINALIZADO') {
+                        if (!confirm('¿Estás seguro de finalizar este pedido? Se enviará notificación WhatsApp.')) {
+                            this.value = valorAnterior;
+                            return;
+                        }
+                    }
+                    
+                    cambiarEstado(pedidoId, nuevoEstado, this);
+                });
+            });
+            
+            // Eventos para botones de WhatsApp
+            document.querySelectorAll('.btn-whatsapp').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const pedidoId = this.getAttribute('data-pedido-id');
+                    enviarWhatsApp(pedidoId);
+                });
+            });
+        });
+    </script>
+</div>
+</body>
+</html>
