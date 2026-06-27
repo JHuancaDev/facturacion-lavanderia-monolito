@@ -1,19 +1,25 @@
 // src/main/java/dev/jhuanca/facturacion/controller/PedidoController.java
 package dev.jhuanca.facturacion.controller;
 
+import dev.jhuanca.facturacion.entity.Boleta;
 import dev.jhuanca.facturacion.entity.Cliente;
 import dev.jhuanca.facturacion.entity.DetallePedido;
 import dev.jhuanca.facturacion.entity.Pedido;
 import dev.jhuanca.facturacion.entity.Servicios;
 import dev.jhuanca.facturacion.entity.UbicacionRopa;
 import dev.jhuanca.facturacion.enums.EstadoPedido;
+import dev.jhuanca.facturacion.repository.BoletaRepository;
 import dev.jhuanca.facturacion.repository.ClienteRepository;
 import dev.jhuanca.facturacion.repository.DetallePedidoRepository;
 import dev.jhuanca.facturacion.repository.PedidoRepository;
 import dev.jhuanca.facturacion.repository.ServiciosRepository;
 import dev.jhuanca.facturacion.repository.UbicacionRopaRepository;
+import dev.jhuanca.facturacion.service.SunatService;
 import dev.jhuanca.facturacion.service.WhatsAppService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -50,6 +56,12 @@ public class PedidoController {
     @Autowired
     private WhatsAppService whatsAppService;
 
+    @Autowired
+    private BoletaRepository boletaRepository;
+
+    @Autowired
+    private SunatService sunatService;
+
     @GetMapping
     public String listarPedidos(Model model) {
         model.addAttribute("pedidos", pedidoRepository.findAll());
@@ -78,6 +90,118 @@ public class PedidoController {
     // src/main/java/dev/jhuanca/facturacion/controller/PedidoController.java
 
     // src/main/java/dev/jhuanca/facturacion/controller/PedidoController.java
+
+    @GetMapping("/{id}/descargar-boleta")
+    public ResponseEntity<byte[]> descargarBoleta(@PathVariable Long id) {
+        try {
+            Pedido pedido = pedidoRepository.findById(id).orElse(null);
+            if (pedido == null || pedido.getBoleta() == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Generar contenido de la boleta
+            StringBuilder contenido = new StringBuilder();
+            contenido.append("========================================\n");
+            contenido.append("         BOLETA DE VENTA              \n");
+            contenido.append("========================================\n");
+            contenido.append("Número: ").append(pedido.getBoleta().getNumeroBoleta()).append("\n");
+            contenido.append("Fecha: ").append(pedido.getBoleta().getFechaEmision()).append("\n");
+            contenido.append("----------------------------------------\n");
+            contenido.append("Cliente: ").append(pedido.getCliente().getNombres()).append(" ");
+            contenido.append(pedido.getCliente().getApellidoPaterno()).append("\n");
+            contenido.append("DNI: ").append(pedido.getCliente().getDni()).append("\n");
+            contenido.append("Teléfono: ").append(pedido.getCliente().getTelefono()).append("\n");
+            contenido.append("----------------------------------------\n");
+            contenido.append("DETALLE:\n");
+
+            for (DetallePedido detalle : pedido.getDetalles()) {
+                contenido.append("  - ").append(detalle.getServicio().getNameService());
+                contenido.append(" (").append(detalle.getPeso()).append(" kg)");
+                contenido.append(" S/ ").append(detalle.getSubtotal()).append("\n");
+            }
+
+            contenido.append("----------------------------------------\n");
+            contenido.append("TOTAL: S/ ").append(pedido.getMontoTotal()).append("\n");
+            contenido.append("========================================\n");
+            contenido.append("¡Gracias por su preferencia!\n");
+
+            byte[] contenidoBytes = contenido.toString().getBytes("UTF-8");
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.TEXT_PLAIN);
+            headers.setContentDispositionFormData("attachment",
+                    "boleta_" + pedido.getBoleta().getNumeroBoleta() + ".txt");
+
+            return new ResponseEntity<>(contenidoBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/{id}/emitir-boleta")
+    public String emitirBoleta(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            Pedido pedido = pedidoRepository.findById(id).orElse(null);
+            if (pedido == null) {
+                redirectAttributes.addFlashAttribute("error", "Pedido no encontrado");
+                return "redirect:/pedidos";
+            }
+
+            // Verificar si ya tiene boleta
+            if (boletaRepository.findByPedidoId(id).isPresent()) {
+                redirectAttributes.addFlashAttribute("error", "Este pedido ya tiene boleta emitida");
+                return "redirect:/pedidos/detalle/" + id;
+            }
+
+            // Generar número de boleta
+            String numeroBoleta = sunatService.generarNumeroBoleta();
+
+            // Generar XML
+            String xmlBoleta = sunatService.generarXmlBoleta(pedido, numeroBoleta);
+
+            // Enviar a SUNAT (Beta)
+            String respuestaSunat = sunatService.enviarBoletaSunat(xmlBoleta, numeroBoleta);
+
+            // Crear y guardar boleta
+            Boleta boleta = new Boleta();
+            boleta.setPedido(pedido);
+            boleta.setNumeroBoleta(numeroBoleta);
+            boleta.setTotal(pedido.getMontoTotal());
+            boleta.setSerie("B001");
+
+            // Extraer correlativo del número
+            String[] partes = numeroBoleta.split("-");
+            if (partes.length == 2) {
+                boleta.setCorrelativo(Integer.parseInt(partes[1]));
+            }
+
+            boleta.setFechaEmision(LocalDateTime.now());
+            boleta.setRucEmisor("20123456789");
+            boleta.setRazonSocialEmisor("LAVANDERIA EJEMPLO S.A.C.");
+            boleta.setClienteTipoDoc("DNI");
+            boleta.setClienteNumeroDoc(pedido.getCliente().getDni());
+            boleta.setClienteNombre(pedido.getCliente().getNombres() + " " + pedido.getCliente().getApellidoPaterno());
+            boleta.setEnviadoSunat(true);
+            boleta.setFechaEnvioSunat(LocalDateTime.now());
+            boleta.setSunatRespuesta(respuestaSunat);
+
+            boletaRepository.save(boleta);
+
+            // Actualizar el pedido con la boleta
+            pedido.setBoleta(boleta);
+            pedidoRepository.save(pedido);
+
+            redirectAttributes.addFlashAttribute("success", "Boleta " + numeroBoleta + " emitida correctamente");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error", "Error al emitir boleta: " + e.getMessage());
+        }
+
+        return "redirect:/pedidos/detalle/" + id;
+    }
 
     @PostMapping("/guardar")
     public String guardarPedido(
@@ -319,12 +443,26 @@ public class PedidoController {
         }
     }
 
+    // src/main/java/dev/jhuanca/facturacion/controller/PedidoController.java
+
     @GetMapping("/detalle/{id}")
     public String verDetalle(@PathVariable Long id, Model model) {
-        Pedido pedido = pedidoRepository.findById(id).orElse(null);
-        if (pedido == null) {
-            return "redirect:/pedidos";
+        // Cargar el pedido con todas sus relaciones
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
+
+        // ⚠️ FORZAR LA CARGA DE LA RELACIÓN BOLETA
+        // Esto asegura que Hibernate cargue la boleta asociada
+        if (pedido.getBoleta() != null) {
+            // La boleta ya está cargada
+            System.out.println("Boleta encontrada: " + pedido.getBoleta().getNumeroBoleta());
+        } else {
+            System.out.println("No hay boleta para este pedido");
         }
+
+        // También verificar que el estado sea FINALIZADO
+        System.out.println("Estado del pedido: " + pedido.getEstado());
+
         model.addAttribute("pedido", pedido);
         model.addAttribute("template", "pedido/detalle");
         return "layout/base";

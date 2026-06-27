@@ -44,7 +44,21 @@ public class Boleta {
     private Integer correlativo;
     private LocalDateTime fechaEmision;
 
-    // Datos adicionales para SUNAT
-    private String rucLavanderia;
-    private String razonSocial;
+    // Datos del emisor
+    private String rucEmisor;
+    private String razonSocialEmisor;
+
+    // Datos del cliente
+    private String clienteTipoDoc;
+    private String clienteNumeroDoc;
+    private String clienteNombre;
+
+    // Respuesta de SUNAT
+    private String sunatRespuesta;
+    private String sunatCodigo;
+    private String sunatDescripcion;
+    private String ticket;
+    
+    private Boolean enviadoSunat = false;
+    private LocalDateTime fechaEnvioSunat;
 }
