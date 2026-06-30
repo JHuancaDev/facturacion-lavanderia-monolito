@@ -141,67 +141,73 @@ public class PedidoController {
     }
 
     @GetMapping("/{id}/emitir-boleta")
-    public String emitirBoleta(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            Pedido pedido = pedidoRepository.findById(id).orElse(null);
-            if (pedido == null) {
-                redirectAttributes.addFlashAttribute("error", "Pedido no encontrado");
-                return "redirect:/pedidos";
-            }
-
-            // Verificar si ya tiene boleta
-            if (boletaRepository.findByPedidoId(id).isPresent()) {
-                redirectAttributes.addFlashAttribute("error", "Este pedido ya tiene boleta emitida");
-                return "redirect:/pedidos/detalle/" + id;
-            }
-
-            // Generar número de boleta
-            String numeroBoleta = sunatService.generarNumeroBoleta();
-
-            // Generar XML
-            String xmlBoleta = sunatService.generarXmlBoleta(pedido, numeroBoleta);
-
-            // Enviar a SUNAT (Beta)
-            String respuestaSunat = sunatService.enviarBoletaSunat(xmlBoleta, numeroBoleta);
-
-            // Crear y guardar boleta
-            Boleta boleta = new Boleta();
-            boleta.setPedido(pedido);
-            boleta.setNumeroBoleta(numeroBoleta);
-            boleta.setTotal(pedido.getMontoTotal());
-            boleta.setSerie("B001");
-
-            // Extraer correlativo del número
-            String[] partes = numeroBoleta.split("-");
-            if (partes.length == 2) {
-                boleta.setCorrelativo(Integer.parseInt(partes[1]));
-            }
-
-            boleta.setFechaEmision(LocalDateTime.now());
-            boleta.setRucEmisor("20123456789");
-            boleta.setRazonSocialEmisor("LAVANDERIA EJEMPLO S.A.C.");
-            boleta.setClienteTipoDoc("DNI");
-            boleta.setClienteNumeroDoc(pedido.getCliente().getDni());
-            boleta.setClienteNombre(pedido.getCliente().getNombres() + " " + pedido.getCliente().getApellidoPaterno());
-            boleta.setEnviadoSunat(true);
-            boleta.setFechaEnvioSunat(LocalDateTime.now());
-            boleta.setSunatRespuesta(respuestaSunat);
-
-            boletaRepository.save(boleta);
-
-            // Actualizar el pedido con la boleta
-            pedido.setBoleta(boleta);
-            pedidoRepository.save(pedido);
-
-            redirectAttributes.addFlashAttribute("success", "Boleta " + numeroBoleta + " emitida correctamente");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            redirectAttributes.addFlashAttribute("error", "Error al emitir boleta: " + e.getMessage());
+public String emitirBoleta(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    try {
+        Pedido pedido = pedidoRepository.findById(id).orElse(null);
+        if (pedido == null) {
+            redirectAttributes.addFlashAttribute("error", "Pedido no encontrado");
+            return "redirect:/pedidos";
         }
 
-        return "redirect:/pedidos/detalle/" + id;
+        // Verificar si ya tiene boleta
+        if (boletaRepository.findByPedidoId(id).isPresent()) {
+            redirectAttributes.addFlashAttribute("error", "Este pedido ya tiene boleta emitida");
+            return "redirect:/pedidos/detalle/" + id;
+        }
+
+        // 1. Generar número de boleta
+        String numeroBoleta = sunatService.generarNumeroBoleta();
+        System.out.println("📄 Número de Boleta: " + numeroBoleta);
+
+        // 2. Generar XML, firmar y enviar a SUNAT (todo en uno)
+        String ticket = sunatService.generarYEnviarBoleta(pedido, numeroBoleta);
+        System.out.println("✅ Ticket recibido: " + ticket);
+
+        // 3. Crear y guardar boleta en BD
+        Boleta boleta = new Boleta();
+        boleta.setPedido(pedido);
+        boleta.setNumeroBoleta(numeroBoleta);
+        boleta.setTotal(pedido.getMontoTotal());
+        boleta.setSerie("B001");
+        
+        // Extraer correlativo del número
+        String[] partes = numeroBoleta.split("-");
+        if (partes.length == 2) {
+            boleta.setCorrelativo(Integer.parseInt(partes[1]));
+        }
+        
+        // Datos del emisor (coinciden con application.properties)
+        boleta.setRucEmisor("10771318199");
+        boleta.setRazonSocialEmisor("LAVANDERIA S.A.C.");
+        
+        // Datos del cliente
+        boleta.setClienteTipoDoc("DNI");
+        boleta.setClienteNumeroDoc(pedido.getCliente().getDni());
+        boleta.setClienteNombre(pedido.getCliente().getNombres() + " " + pedido.getCliente().getApellidoPaterno());
+        
+        // Datos de SUNAT
+        boleta.setEnviadoSunat(true);
+        boleta.setFechaEmision(LocalDateTime.now());
+        boleta.setFechaEnvioSunat(LocalDateTime.now());
+        boleta.setTicket(ticket);
+        boleta.setSunatRespuesta("{\"success\": true, \"ticket\": \"" + ticket + "\"}");
+
+        // Guardar
+        boletaRepository.save(boleta);
+        
+        // Actualizar pedido
+        pedido.setBoleta(boleta);
+        pedidoRepository.save(pedido);
+
+        redirectAttributes.addFlashAttribute("success", "Boleta " + numeroBoleta + " emitida correctamente. Ticket: " + ticket);
+
+    } catch (Exception e) {
+        e.printStackTrace();
+        redirectAttributes.addFlashAttribute("error", "Error al emitir boleta: " + e.getMessage());
     }
+
+    return "redirect:/pedidos/detalle/" + id;
+}
 
     @PostMapping("/guardar")
     public String guardarPedido(

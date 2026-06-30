@@ -4,330 +4,285 @@ package dev.jhuanca.facturacion.service;
 import dev.jhuanca.facturacion.entity.DetallePedido;
 import dev.jhuanca.facturacion.entity.Pedido;
 import dev.jhuanca.facturacion.repository.BoletaRepository;
+import io.github.project.openubl.xbuilder.content.catalogs.Catalog6;
+import io.github.project.openubl.xbuilder.content.models.common.Proveedor;
+import io.github.project.openubl.xbuilder.content.models.standard.general.DocumentoVentaDetalle;
+import io.github.project.openubl.xbuilder.content.models.standard.general.Invoice;
+import io.github.project.openubl.xbuilder.enricher.ContentEnricher;
+import io.github.project.openubl.xbuilder.enricher.config.DateProvider;
+import io.github.project.openubl.xbuilder.enricher.config.Defaults;
+import io.github.project.openubl.xbuilder.renderer.TemplateProducer;
+import io.github.project.openubl.xbuilder.signature.CertificateDetails;
+import io.github.project.openubl.xbuilder.signature.CertificateDetailsFactory;
+import io.github.project.openubl.xbuilder.signature.XMLSigner;
+import io.github.project.openubl.xbuilder.signature.XmlSignatureHelper;
+import io.github.project.openubl.xsender.Constants;
+import io.github.project.openubl.xsender.camel.utils.CamelData;
+import io.github.project.openubl.xsender.camel.utils.CamelUtils;
+import io.github.project.openubl.xsender.company.CompanyCredentials;
+import io.github.project.openubl.xsender.company.CompanyURLs;
+import io.github.project.openubl.xsender.files.BillServiceFileAnalyzer;
+import io.github.project.openubl.xsender.files.BillServiceXMLFileAnalyzer;
+import io.github.project.openubl.xsender.files.ZipFile;
+import io.github.project.openubl.xsender.models.SunatResponse;
+import io.github.project.openubl.xsender.sunat.BillServiceDestination;
+import org.apache.camel.CamelContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import java.io.StringWriter;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
+import java.time.LocalDate;
 
 @Service
 public class SunatService {
 
-    @Value("${sunat.ruc}")
-    private String ruc;
+        @Value("${sunat.ruc}")
+        private String ruc;
 
-    @Value("${sunat.razon-social}")
-    private String razonSocial;
+        @Value("${sunat.razon-social}")
+        private String razonSocial;
 
-    @Value("${sunat.serie-boleta}")
-    private String serieBoleta;
+        @Value("${sunat.usuario}")
+        private String usuario;
 
-    @Autowired
-    private BoletaRepository boletaRepository;
+        @Value("${sunat.password}")
+        private String password;
 
-    @Autowired
-    private SunatFirmaService firmaService;
+        @Value("${sunat.url-beta}")
+        private String urlSunat;
 
-    @Autowired
-    private SunatSoapClient soapClient;
+        @Value("${sunat.serie-boleta}")
+        private String serieBoleta;
 
-    /**
-     * Genera el número de boleta correlativo
-     */
-    public synchronized String generarNumeroBoleta() {
-        Long ultimoCorrelativo = boletaRepository.findMaxCorrelativo();
-        if (ultimoCorrelativo == null) {
-            ultimoCorrelativo = 0L;
+        @Value("${sunat.certificado.ruta:certificados/sunat.pfx}")
+        private String rutaCertificado;
+
+        @Value("${sunat.certificado.password:}")
+        private String passwordCertificado;
+
+        @Autowired
+        private BoletaRepository boletaRepository;
+
+        @Autowired
+        private CamelContext camelContext;
+
+        private final Defaults defaults = Defaults.builder()
+                        .igvTasa(new BigDecimal("0.18"))
+                        .icbTasa(new BigDecimal("0.20"))
+                        .build();
+
+        private final DateProvider dateProvider = LocalDate::now;
+
+        /**
+         * Genera el número de boleta correlativo
+         */
+        public synchronized String generarNumeroBoleta() {
+                Long ultimoCorrelativo = boletaRepository.findMaxCorrelativo();
+                if (ultimoCorrelativo == null) {
+                        ultimoCorrelativo = 0L;
+                }
+                Integer nuevoCorrelativo = ultimoCorrelativo.intValue() + 1;
+                String numeroFormateado = String.format("%06d", nuevoCorrelativo);
+                return serieBoleta + "-" + numeroFormateado;
         }
 
-        Integer nuevoCorrelativo = ultimoCorrelativo.intValue() + 1;
-        String numeroFormateado = String.format("%06d", nuevoCorrelativo);
-        return serieBoleta + "-" + numeroFormateado;
-    }
+        /**
+         * Genera el XML de la boleta usando XBuilder
+         */
+        public String generarXmlBoleta(Pedido pedido, String numeroBoleta) throws Exception {
+                System.out.println("📝 GENERANDO XML DE BOLETA CON XBUILDER...");
 
-    public String enviarBoletaSunat(String xmlBoleta, String numeroBoleta) {
-        try {
-            System.out.println("🚀 INICIANDO ENVÍO A SUNAT BETA...");
-            System.out.println("📄 Número de Boleta: " + numeroBoleta);
+                // Extraer el número correlativo
+                String numero = numeroBoleta.split("-")[1];
 
-            // PASO 1: Firmar el XML
-            System.out.println("🔐 FIRMANDO XML...");
-            String xmlFirmado = firmaService.firmarXML(xmlBoleta);
-            System.out.println("✅ XML FIRMADO CORRECTAMENTE");
+                // Construir la boleta con XBuilder
+                Invoice.InvoiceBuilder builder = Invoice.builder()
+                                .serie(serieBoleta)
+                                .numero(Integer.parseInt(numero))
+                                .proveedor(Proveedor.builder()
+                                                .ruc(ruc)
+                                                .razonSocial(razonSocial)
+                                                .build());
 
-            // PASO 2: Enviar a SUNAT Beta (ahora con ZIP)
-            System.out.println("📤 ENVIANDO A SUNAT BETA...");
-            String respuestaSunat = soapClient.enviarBoleta(xmlFirmado, numeroBoleta);
+                // Agregar cliente
+                if (pedido.getCliente() != null) {
+                        String dni = pedido.getCliente().getDni();
+                        if (dni == null || dni.isEmpty() || dni.equals("99999999")) {
+                                dni = "99999999";
+                        }
+                        builder.cliente(io.github.project.openubl.xbuilder.content.models.common.Cliente.builder()
+                                        .nombre(pedido.getCliente().getNombres() + " " +
+                                                        (pedido.getCliente().getApellidoPaterno() != null
+                                                                        ? pedido.getCliente().getApellidoPaterno()
+                                                                        : ""))
+                                        .numeroDocumentoIdentidad(dni)
+                                        .tipoDocumentoIdentidad(Catalog6.DNI.getCode())
+                                        .build());
+                }
 
-            // PASO 3: Procesar respuesta
-            Map<String, String> resultado = procesarRespuestaSunat(respuestaSunat);
-            System.out.println("📥 RESPUESTA PROCESADA:");
-            System.out.println("   Éxito: " + resultado.get("success"));
-            System.out.println("   Código: " + resultado.get("codigo"));
-            System.out.println("   Mensaje: " + resultado.get("mensaje"));
-            System.out.println("   Ticket: " + resultado.get("ticket"));
+                // Agregar detalles
+                for (DetallePedido detalle : pedido.getDetalles()) {
+                        builder.detalle(DocumentoVentaDetalle.builder()
+                                        .descripcion(detalle.getServicio().getNameService() +
+                                                        " (" + detalle.getPeso() + " kg)" +
+                                                        (detalle.getColor() != null && !detalle.getColor().isEmpty()
+                                                                        ? " - Color: " + detalle.getColor()
+                                                                        : ""))
+                                        .cantidad(BigDecimal.ONE)
+                                        .precio(BigDecimal.valueOf(detalle.getServicio().getPrecio()))
+                                        .unidadMedida("NIU")
+                                        .build());
+                }
 
-            return respuestaSunat;
+                Invoice invoice = builder.build();
 
-        } catch (Exception e) {
-            System.err.println("❌ ERROR EN ENVÍO A SUNAT: " + e.getMessage());
-            e.printStackTrace();
-            return "{\"success\": false, \"mensaje\": \"" + e.getMessage() + "\"}";
+                // Enriquecer el XML (agregar totales, impuestos, etc.)
+                ContentEnricher enricher = new ContentEnricher(defaults, dateProvider);
+                enricher.enrich(invoice);
+
+                // Renderizar el XML
+                String xml = TemplateProducer.getInstance()
+                                .getInvoice()
+                                .data(invoice)
+                                .render();
+
+                System.out.println("✅ XML GENERADO CON XBUILDER");
+                return xml;
         }
-    }
 
-    // src/main/java/dev/jhuanca/facturacion/service/SunatService.java
+        /**
+         * Firma el XML usando el certificado digital
+         */
+        public String firmarXML(String xml) throws Exception {
+                System.out.println("🔐 FIRMANDO XML CON XBUILDER...");
 
-    public Map<String, String> procesarRespuestaSunat(String respuesta) {
-        Map<String, String> resultado = new HashMap<>();
+                // Cargar el certificado
+                ClassPathResource resource = new ClassPathResource(rutaCertificado);
+                try (InputStream ksInputStream = resource.getInputStream()) {
+                        CertificateDetails certificate = CertificateDetailsFactory.create(
+                                        ksInputStream,
+                                        passwordCertificado);
 
-        try {
-            // Verificar si hay error
-            if (respuesta.contains("<soap-env:Fault>") || respuesta.contains("<soap:Fault>")) {
-                resultado.put("success", "false");
+                        X509Certificate x509Certificate = certificate.getX509Certificate();
+                        PrivateKey privateKey = certificate.getPrivateKey();
 
-                // Extraer código y mensaje de error
-                String faultCode = extraerEntre(respuesta, "<faultcode>", "</faultcode>");
-                String faultString = extraerEntre(respuesta, "<faultstring>", "</faultstring>");
+                        // ✅ CORREGIDO: Usar un valor válido para Id (sin espacios ni caracteres
+                        // especiales)
+                        // El tipo ID solo permite: letras, números, guiones bajos y puntos
+                        String idFirma = "Signature_" + System.currentTimeMillis();
+                        System.out.println("   ID de firma: " + idFirma);
 
-                resultado.put("codigo", faultCode != null ? faultCode : "ERROR");
-                resultado.put("mensaje", faultString != null ? faultString : "Error en el envío");
+                        // Firmar el XML
+                        Document signedXML = XMLSigner.signXML(
+                                        xml,
+                                        idFirma, // ← CORREGIDO: valor válido para ID
+                                        x509Certificate,
+                                        privateKey);
 
-                System.err.println("❌ ERROR SUNAT: " + faultCode);
-                System.err.println("   Mensaje: " + faultString);
+                        // Convertir a String
+                        byte[] bytesFromDocument = XmlSignatureHelper.getBytesFromDocument(signedXML);
+                        String xmlFirmado = new String(bytesFromDocument, StandardCharsets.ISO_8859_1);
 
-                // Si el error es de nombre de archivo, mostrar el formato esperado
-                if (faultString != null && faultString.contains("nombre del archivo")) {
-                    System.err.println("   💡 El formato correcto es: RUC-03-SERIE-NUMERO.xml");
-                    System.err.println("   💡 Ejemplo: 10771318199-03-B001-000001.xml");
+                        System.out.println("✅ XML FIRMADO CORRECTAMENTE");
+                        return xmlFirmado;
                 }
-            } else {
-                // Respuesta exitosa
-                resultado.put("success", "true");
+        }
 
-                // Buscar ticket en la respuesta
-                String ticket = extraerEntre(respuesta, "<ticket>", "</ticket>");
-                if (ticket == null) {
-                    ticket = extraerEntre(respuesta, "ticket:", "\n");
+        public String enviarBoletaSunat(String xmlFirmado, String numeroBoleta) throws Exception {
+                System.out.println("📤 ENVIANDO A SUNAT CON XSENDER...");
+
+                CompanyURLs companyURLs = CompanyURLs.builder()
+                                .invoice(urlSunat)
+                                .perceptionRetention(
+                                                "https://e-beta.sunat.gob.pe/ol-ti-itemision-otroscpe-gem-beta/billService")
+                                .despatch("https://api-cpe.sunat.gob.pe/v1/contribuyente/gem")
+                                .build();
+
+                CompanyCredentials credentials = CompanyCredentials.builder()
+                                .username(usuario)
+                                .password(password)
+                                .build();
+
+                byte[] xmlBytes = xmlFirmado.getBytes(StandardCharsets.UTF_8);
+                BillServiceFileAnalyzer fileAnalyzer = new BillServiceXMLFileAnalyzer(xmlBytes, companyURLs);
+                ZipFile zipFile = fileAnalyzer.getZipFile();
+                BillServiceDestination fileDestination = fileAnalyzer.getSendFileDestination();
+
+                CamelData camelData = CamelUtils.getBillServiceCamelData(zipFile, fileDestination, credentials);
+
+                SunatResponse response = camelContext.createProducerTemplate()
+                                .requestBodyAndHeaders(
+                                                Constants.XSENDER_BILL_SERVICE_URI,
+                                                camelData.getBody(),
+                                                camelData.getHeaders(),
+                                                SunatResponse.class);
+
+                System.out.println("=== RESPUESTA DE SUNAT ===");
+                System.out.println("Status: " + response.getStatus());
+                System.out.println("Sunat: " + response.getSunat());
+                if (response.getMetadata() != null) {
+                        System.out.println("Metadata - Code: " + response.getMetadata().getResponseCode());
+                        System.out.println("Metadata - Description: " + response.getMetadata().getDescription());
                 }
-                if (ticket == null) {
-                    ticket = extraerEntre(respuesta, "ticket='", "'");
-                }
-                if (ticket == null) {
-                    ticket = extraerEntre(respuesta, "ticket=\"", "\"");
+                System.out.println("===========================");
+
+                // Verificar éxito
+                boolean esExitoso = false;
+                String ticket = null;
+                String mensaje = "Error desconocido";
+
+                // 1. Verificar ticket
+                if (response.isTicket() && response.getSunat() != null && response.getSunat().getTicket() != null) {
+                        ticket = response.getSunat().getTicket();
+                        esExitoso = true;
                 }
 
-                if (ticket != null && !ticket.isEmpty()) {
-                    resultado.put("ticket", ticket.trim());
-                    System.out.println("✅ TICKET OBTENIDO: " + ticket.trim());
+                // 2. Verificar Metadata (responseCode=0 = éxito)
+                if (response.getMetadata() != null && response.getMetadata().getResponseCode() != null) {
+                        int code = response.getMetadata().getResponseCode();
+                        String description = response.getMetadata().getDescription();
+
+                        if (code == 0) {
+                                esExitoso = true;
+                                mensaje = description;
+                                if (ticket == null) {
+                                        ticket = "TICKET-" + System.currentTimeMillis() + "-ACEPTADO";
+                                }
+                        } else {
+                                mensaje = description;
+                        }
+                }
+
+                if (esExitoso) {
+                        System.out.println("✅ BOLETA ENVIADA EXITOSAMENTE");
+                        System.out.println("   Ticket: " + ticket);
+                        System.out.println("   Mensaje SUNAT: " + mensaje);
+                        return ticket;
                 } else {
-                    resultado.put("ticket", "TICKET-" + System.currentTimeMillis());
-                    System.out.println("⚠️ No se encontró ticket en la respuesta, se genera uno temporal");
+                        throw new Exception("Error al enviar boleta: " + mensaje);
                 }
-            }
-        } catch (Exception e) {
-            resultado.put("success", "false");
-            resultado.put("mensaje", "Error al procesar respuesta: " + e.getMessage());
-            e.printStackTrace();
         }
 
-        return resultado;
-    }
+        /**
+         * Método principal que integra todo el proceso
+         */
+        public String generarYEnviarBoleta(Pedido pedido, String numeroBoleta) throws Exception {
+                // 1. Generar XML
+                String xml = generarXmlBoleta(pedido, numeroBoleta);
 
-    private String extraerEntre(String texto, String inicio, String fin) {
-        try {
-            int start = texto.indexOf(inicio);
-            if (start == -1)
-                return null;
-            start += inicio.length();
-            int end = texto.indexOf(fin, start);
-            if (end == -1)
-                return null;
-            return texto.substring(start, end).trim();
-        } catch (Exception e) {
-            return null;
+                // 2. Firmar XML
+                String xmlFirmado = firmarXML(xml);
+
+                // 3. Enviar a SUNAT
+                String ticket = enviarBoletaSunat(xmlFirmado, numeroBoleta);
+
+                return ticket;
         }
-    }
-
-    /**
-     * Genera el XML de la boleta (sin firma)
-     */
-    public String generarXmlBoleta(Pedido pedido, String numeroBoleta) throws Exception {
-        System.out.println("📝 GENERANDO XML DE BOLETA...");
-
-        DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-        docFactory.setNamespaceAware(true);
-        Document doc = docFactory.newDocumentBuilder().newDocument();
-
-        // Elemento raíz
-        Element rootElement = doc.createElementNS(
-                "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2",
-                "Invoice");
-        rootElement.setAttribute("xmlns:cac",
-                "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2");
-        rootElement.setAttribute("xmlns:cbc", "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2");
-        rootElement.setAttribute("xmlns:ccts", "urn:un:unece:uncefact:documentation:2");
-        rootElement.setAttribute("xmlns:ds", "http://www.w3.org/2000/09/xmldsig#");
-        rootElement.setAttribute("xmlns:ext",
-                "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2");
-        rootElement.setAttribute("xmlns:qdt", "urn:oasis:names:specification:ubl:schema:xsd:QualifiedDatatypes-2");
-        rootElement.setAttribute("xmlns:udt",
-                "urn:un:unece:uncefact:data:specification:UnqualifiedDataTypesSchemaModule:2");
-        doc.appendChild(rootElement);
-
-        // ID (número de boleta)
-        Element idElement = doc.createElement("cbc:ID");
-        idElement.appendChild(doc.createTextNode(numeroBoleta));
-        rootElement.appendChild(idElement);
-
-        // Fecha de emisión
-        Element issueDate = doc.createElement("cbc:IssueDate");
-        issueDate.appendChild(doc.createTextNode(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE)));
-        rootElement.appendChild(issueDate);
-
-        // Fecha/hora de emisión
-        Element issueTime = doc.createElement("cbc:IssueTime");
-        issueTime.appendChild(doc.createTextNode(LocalDateTime.now().format(DateTimeFormatter.ISO_TIME)));
-        rootElement.appendChild(issueTime);
-
-        // Tipo de documento (03 = Boleta)
-        Element invoiceTypeCode = doc.createElement("cbc:InvoiceTypeCode");
-        invoiceTypeCode.setAttribute("listID", "0101");
-        invoiceTypeCode.setAttribute("listAgencyName", "PE:SUNAT");
-        invoiceTypeCode.setAttribute("listName", "Tipo de Documento");
-        invoiceTypeCode.appendChild(doc.createTextNode("03"));
-        rootElement.appendChild(invoiceTypeCode);
-
-        // Moneda
-        Element docCurrencyCode = doc.createElement("cbc:DocumentCurrencyCode");
-        docCurrencyCode.appendChild(doc.createTextNode("PEN"));
-        rootElement.appendChild(docCurrencyCode);
-
-        // ============ DATOS DEL EMISOR ============
-        Element accountingSupplierParty = doc.createElement("cac:AccountingSupplierParty");
-        Element supplierParty = doc.createElement("cac:Party");
-
-        // RUC
-        Element supplierIdentification = doc.createElement("cac:PartyIdentification");
-        Element supplierId = doc.createElement("cbc:ID");
-        supplierId.setAttribute("schemeID", "6");
-        supplierId.appendChild(doc.createTextNode(ruc));
-        supplierIdentification.appendChild(supplierId);
-        supplierParty.appendChild(supplierIdentification);
-
-        // Razón Social
-        Element supplierPartyName = doc.createElement("cac:PartyName");
-        Element supplierName = doc.createElement("cbc:Name");
-        supplierName.appendChild(doc.createTextNode(razonSocial));
-        supplierPartyName.appendChild(supplierName);
-        supplierParty.appendChild(supplierPartyName);
-
-        accountingSupplierParty.appendChild(supplierParty);
-        rootElement.appendChild(accountingSupplierParty);
-
-        // ============ DATOS DEL CLIENTE ============
-        Element accountingCustomerParty = doc.createElement("cac:AccountingCustomerParty");
-        Element customerParty = doc.createElement("cac:Party");
-
-        Element customerIdentification = doc.createElement("cac:PartyIdentification");
-        Element customerId = doc.createElement("cbc:ID");
-        customerId.setAttribute("schemeID", "1"); // 1 = DNI
-        String dni = (pedido.getCliente().getDni() != null && !pedido.getCliente().getDni().equals("99999999"))
-                ? pedido.getCliente().getDni()
-                : "99999999";
-        customerId.appendChild(doc.createTextNode(dni));
-        customerIdentification.appendChild(customerId);
-        customerParty.appendChild(customerIdentification);
-
-        Element customerPartyName = doc.createElement("cac:PartyName");
-        Element customerName = doc.createElement("cbc:Name");
-        String nombreCliente = pedido.getCliente().getNombres() + " " +
-                (pedido.getCliente().getApellidoPaterno() != null ? pedido.getCliente().getApellidoPaterno() : "");
-        customerName.appendChild(doc.createTextNode(nombreCliente));
-        customerPartyName.appendChild(customerName);
-        customerParty.appendChild(customerPartyName);
-
-        accountingCustomerParty.appendChild(customerParty);
-        rootElement.appendChild(accountingCustomerParty);
-
-        // ============ DETALLE ============
-        int lineNumber = 1;
-        for (DetallePedido detalle : pedido.getDetalles()) {
-            Element invoiceLine = doc.createElement("cac:InvoiceLine");
-
-            Element lineId = doc.createElement("cbc:ID");
-            lineId.appendChild(doc.createTextNode(String.valueOf(lineNumber++)));
-            invoiceLine.appendChild(lineId);
-
-            // Cantidad (siempre 1 por ahora, el peso va en la descripción)
-            Element quantity = doc.createElement("cbc:InvoicedQuantity");
-            quantity.setAttribute("unitCode", "NIU");
-            quantity.appendChild(doc.createTextNode("1"));
-            invoiceLine.appendChild(quantity);
-
-            // Precio unitario
-            Element lineExtensionAmount = doc.createElement("cbc:LineExtensionAmount");
-            lineExtensionAmount.setAttribute("currencyID", "PEN");
-            lineExtensionAmount.appendChild(doc.createTextNode(detalle.getSubtotal().toString()));
-            invoiceLine.appendChild(lineExtensionAmount);
-
-            // Item
-            Element item = doc.createElement("cac:Item");
-            Element description = doc.createElement("cbc:Description");
-            description.appendChild(doc.createTextNode(
-                    detalle.getServicio().getNameService() +
-                            " (" + detalle.getPeso() + " kg)" +
-                            (detalle.getColor() != null && !detalle.getColor().isEmpty()
-                                    ? " - Color: " + detalle.getColor()
-                                    : "")));
-            item.appendChild(description);
-            invoiceLine.appendChild(item);
-
-            // Precio
-            Element price = doc.createElement("cac:Price");
-            Element priceAmount = doc.createElement("cbc:PriceAmount");
-            priceAmount.setAttribute("currencyID", "PEN");
-            priceAmount.appendChild(doc.createTextNode(detalle.getServicio().getPrecio().toString()));
-            price.appendChild(priceAmount);
-            invoiceLine.appendChild(price);
-
-            rootElement.appendChild(invoiceLine);
-        }
-
-        // ============ TOTAL ============
-        Element legalMonetaryTotal = doc.createElement("cac:LegalMonetaryTotal");
-
-        Element lineExtensionAmountTotal = doc.createElement("cbc:LineExtensionAmount");
-        lineExtensionAmountTotal.setAttribute("currencyID", "PEN");
-        lineExtensionAmountTotal.appendChild(doc.createTextNode(pedido.getMontoTotal().toString()));
-        legalMonetaryTotal.appendChild(lineExtensionAmountTotal);
-
-        Element payableAmount = doc.createElement("cbc:PayableAmount");
-        payableAmount.setAttribute("currencyID", "PEN");
-        payableAmount.appendChild(doc.createTextNode(pedido.getMontoTotal().toString()));
-        legalMonetaryTotal.appendChild(payableAmount);
-
-        rootElement.appendChild(legalMonetaryTotal);
-
-        // Convertir a String
-        TransformerFactory transformerFactory = TransformerFactory.newInstance();
-        Transformer transformer = transformerFactory.newTransformer();
-        StringWriter writer = new StringWriter();
-        transformer.transform(new DOMSource(doc), new StreamResult(writer));
-
-        String xml = writer.toString();
-        System.out.println("✅ XML GENERADO");
-        return xml;
-    }
 }
