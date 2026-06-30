@@ -1,139 +1,151 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+
 <body>
-<div th:fragment="content">
-    <div class="card">
-        <div class="card-header bg-primary text-white d-flex justify-content-between">
-            <h4>📄 Lista de Boletas Emitidas</h4>
-            <span class="badge bg-light text-dark" th:text="${boletas.size()} + ' boletas'"></span>
-        </div>
-        <div class="card-body">
-            
-            <!-- Filtros rápidos -->
-            <div class="row mb-3">
-                <div class="col-md-3">
-                    <input type="text" id="filtroBusqueda" class="form-control" placeholder="🔍 Buscar boleta...">
-                </div>
-                <div class="col-md-3">
-                    <select id="filtroEstado" class="form-select">
-                        <option value="">Todos los estados</option>
-                        <option value="true">✅ Enviadas a SUNAT</option>
-                        <option value="false">⏳ Pendientes</option>
-                    </select>
-                </div>
+    <div th:fragment="content">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between">
+                <h4>📄 Lista de Boletas Emitidas</h4>
+                <span class="badge bg-light text-dark" th:text="${boletas.size()} + ' boletas'"></span>
             </div>
+            <div class="card-body">
 
-            <div class="table-responsive">
-                <table class="table table-striped table-hover" id="tablaBoletas">
-                    <thead class="table-primary">
-                        <tr>
-                            <th>#</th>
-                            <th>N° Boleta</th>
-                            <th>Cliente</th>
-                            <th>Total</th>
-                            <th>Fecha Emisión</th>
-                            <th>Estado SUNAT</th>
-                            <th>Pedido</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="boleta, stat : ${boletas}">
-                            <td th:text="${stat.index + 1}"></td>
-                            <td>
-                                <strong th:text="${boleta.numeroBoleta}"></strong>
-                                <br>
-                                <small class="text-muted" th:text="'Serie: ' + ${boleta.serie}"></small>
-                            </td>
-                            <td>
-                                <span th:text="${boleta.clienteNombre}"></span>
-                                <br>
-                                <small class="text-muted" th:text="'DNI: ' + ${boleta.clienteNumeroDoc}"></small>
-                            </td>
-                            <td th:text="'S/ ' + ${#numbers.formatDecimal(boleta.total, 1, 2)}"></td>
-                            <td th:text="${#temporals.format(boleta.fechaEmision, 'dd/MM/yyyy HH:mm')}"></td>
-                            <td>
-                                <span th:if="${boleta.enviadoSunat}" class="badge bg-success">
-                                    ✅ Enviada
-                                </span>
-                                <span th:unless="${boleta.enviadoSunat}" class="badge bg-warning">
-                                    ⏳ Pendiente
-                                </span>
-                                <br>
-                                <small th:if="${boleta.sunatCodigo}" 
-                                       th:text="'Código: ' + ${boleta.sunatCodigo}"
-                                       class="text-muted">
-                                </small>
-                            </td>
-                            <td>
-                                <a th:href="@{/pedidos/detalle/{id}(id=${boleta.pedido.id})}" 
-                                   class="btn btn-sm btn-info">
-                                    Ver Pedido #<span th:text="${boleta.pedido.id}"></span>
-                                </a>
-                            </td>
-                            <td>
-                                <a th:href="@{/pedidos/{id}/descargar-boleta(id=${boleta.pedido.id})}" 
-                                   class="btn btn-sm btn-success">
-                                    📥 Descargar
-                                </a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                <!-- Filtros rápidos -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <input type="text" id="filtroBusqueda" class="form-control" placeholder="🔍 Buscar boleta...">
+                    </div>
+                    <div class="col-md-3">
+                        <select id="filtroEstado" class="form-select">
+                            <option value="">Todos los estados</option>
+                            <option value="true">✅ Enviadas a SUNAT</option>
+                            <option value="false">⏳ Pendientes</option>
+                        </select>
+                    </div>
+                </div>
 
-            <!-- Resumen -->
-            <div class="alert alert-info mt-3">
-                <strong>Resumen:</strong>
-                <span th:text="${boletas.size()} + ' boletas emitidas'"></span>
-                <span class="mx-2">|</span>
-                <span th:text="${#lists.size(boletas.?[enviadoSunat == true])} + ' enviadas a SUNAT'"></span>
-                <span class="mx-2">|</span>
-                <span th:text="${#lists.size(boletas.?[enviadoSunat == false])} + ' pendientes'"></span>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="tablaBoletas">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>#</th>
+                                <th>N° Boleta</th>
+                                <th>Cliente</th>
+                                <th>Total</th>
+                                <th>Fecha Emisión</th>
+                                <th>Estado SUNAT</th>
+                                <th>Pedido</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="boleta, stat : ${boletas}">
+                                <td th:text="${stat.index + 1}"></td>
+                                <td>
+                                    <strong th:text="${boleta.numeroBoleta}"></strong>
+                                    <br>
+                                    <small class="text-muted" th:text="'Serie: ' + ${boleta.serie}"></small>
+                                </td>
+                                <td>
+                                    <span th:text="${boleta.clienteNombre}"></span>
+                                    <br>
+                                    <small class="text-muted" th:text="'DNI: ' + ${boleta.clienteNumeroDoc}"></small>
+                                </td>
+                                <td th:text="'S/ ' + ${#numbers.formatDecimal(boleta.total, 1, 2)}"></td>
+                                <td th:text="${#temporals.format(boleta.fechaEmision, 'dd/MM/yyyy HH:mm')}"></td>
+                                <td>
+                                    <span th:if="${boleta.enviadoSunat}" class="badge bg-success">
+                                        ✅ Enviada
+                                    </span>
+                                    <span th:unless="${boleta.enviadoSunat}" class="badge bg-warning">
+                                        ⏳ Pendiente
+                                    </span>
+                                    <br>
+                                    <small th:if="${boleta.sunatCodigo}" th:text="'Código: ' + ${boleta.sunatCodigo}"
+                                        class="text-muted">
+                                    </small>
+                                </td>
+                                <td>
+                                    <a th:href="@{/pedidos/detalle/{id}(id=${boleta.pedido.id})}"
+                                        class="btn btn-sm btn-info">
+                                        Ver Pedido #<span th:text="${boleta.pedido.id}"></span>
+                                    </a>
+                                </td>
+                                <!-- En src/main/resources/templates/boleta/list.html -->
+                                <!-- Actualiza la columna de acciones -->
+
+                                <td>
+                                    <a th:href="@{/pedidos/{id}/descargar-pdf(id=${boleta.pedido.id})}"
+                                        class="btn btn-sm btn-danger" title="Descargar PDF">
+                                        📄 PDF
+                                    </a>
+                                    <a th:href="@{/pedidos/{id}/descargar-xml(id=${boleta.pedido.id})}"
+                                        class="btn btn-sm btn-warning" title="Descargar XML">
+                                        📋 XML
+                                    </a>
+                                    <a th:href="@{/pedidos/{id}/descargar-boleta(id=${boleta.pedido.id})}"
+                                        class="btn btn-sm btn-success" title="Descargar TXT">
+                                        📝 TXT
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Resumen -->
+                <div class="alert alert-info mt-3">
+                    <strong>Resumen:</strong>
+                    <span th:text="${boletas.size()} + ' boletas emitidas'"></span>
+                    <span class="mx-2">|</span>
+                    <span th:text="${#lists.size(boletas.?[enviadoSunat == true])} + ' enviadas a SUNAT'"></span>
+                    <span class="mx-2">|</span>
+                    <span th:text="${#lists.size(boletas.?[enviadoSunat == false])} + ' pendientes'"></span>
+                </div>
             </div>
         </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const filtroBusqueda = document.getElementById('filtroBusqueda');
+                const filtroEstado = document.getElementById('filtroEstado');
+                const tabla = document.getElementById('tablaBoletas');
+                const filas = tabla.querySelectorAll('tbody tr');
+
+                function filtrar() {
+                    const busqueda = filtroBusqueda.value.toLowerCase();
+                    const estado = filtroEstado.value;
+
+                    filas.forEach(fila => {
+                        let mostrar = true;
+
+                        // Filtro por búsqueda
+                        if (busqueda) {
+                            const texto = fila.textContent.toLowerCase();
+                            if (!texto.includes(busqueda)) {
+                                mostrar = false;
+                            }
+                        }
+
+                        // Filtro por estado SUNAT
+                        if (estado !== '' && mostrar) {
+                            const celdaEstado = fila.querySelector('td:nth-child(6)');
+                            const tieneEnviado = celdaEstado.textContent.includes('Enviada');
+                            if ((estado === 'true' && !tieneEnviado) ||
+                                (estado === 'false' && tieneEnviado)) {
+                                mostrar = false;
+                            }
+                        }
+
+                        fila.style.display = mostrar ? '' : 'none';
+                    });
+                }
+
+                filtroBusqueda.addEventListener('keyup', filtrar);
+                filtroEstado.addEventListener('change', filtrar);
+            });
+        </script>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const filtroBusqueda = document.getElementById('filtroBusqueda');
-            const filtroEstado = document.getElementById('filtroEstado');
-            const tabla = document.getElementById('tablaBoletas');
-            const filas = tabla.querySelectorAll('tbody tr');
-
-            function filtrar() {
-                const busqueda = filtroBusqueda.value.toLowerCase();
-                const estado = filtroEstado.value;
-
-                filas.forEach(fila => {
-                    let mostrar = true;
-                    
-                    // Filtro por búsqueda
-                    if (busqueda) {
-                        const texto = fila.textContent.toLowerCase();
-                        if (!texto.includes(busqueda)) {
-                            mostrar = false;
-                        }
-                    }
-
-                    // Filtro por estado SUNAT
-                    if (estado !== '' && mostrar) {
-                        const celdaEstado = fila.querySelector('td:nth-child(6)');
-                        const tieneEnviado = celdaEstado.textContent.includes('Enviada');
-                        if ((estado === 'true' && !tieneEnviado) || 
-                            (estado === 'false' && tieneEnviado)) {
-                            mostrar = false;
-                        }
-                    }
-
-                    fila.style.display = mostrar ? '' : 'none';
-                });
-            }
-
-            filtroBusqueda.addEventListener('keyup', filtrar);
-            filtroEstado.addEventListener('change', filtrar);
-        });
-    </script>
-</div>
 </body>
+
 </html>

@@ -14,6 +14,7 @@ import dev.jhuanca.facturacion.repository.DetallePedidoRepository;
 import dev.jhuanca.facturacion.repository.PedidoRepository;
 import dev.jhuanca.facturacion.repository.ServiciosRepository;
 import dev.jhuanca.facturacion.repository.UbicacionRopaRepository;
+import dev.jhuanca.facturacion.service.BoletaPdfService;
 import dev.jhuanca.facturacion.service.SunatService;
 import dev.jhuanca.facturacion.service.WhatsAppService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,6 +63,9 @@ public class PedidoController {
 
     @Autowired
     private SunatService sunatService;
+
+    @Autowired
+    private BoletaPdfService boletaPdfService;
 
     @GetMapping
     public String listarPedidos(Model model) {
@@ -141,73 +146,74 @@ public class PedidoController {
     }
 
     @GetMapping("/{id}/emitir-boleta")
-public String emitirBoleta(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-    try {
-        Pedido pedido = pedidoRepository.findById(id).orElse(null);
-        if (pedido == null) {
-            redirectAttributes.addFlashAttribute("error", "Pedido no encontrado");
-            return "redirect:/pedidos";
+    public String emitirBoleta(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            Pedido pedido = pedidoRepository.findById(id).orElse(null);
+            if (pedido == null) {
+                redirectAttributes.addFlashAttribute("error", "Pedido no encontrado");
+                return "redirect:/pedidos";
+            }
+
+            // Verificar si ya tiene boleta
+            if (boletaRepository.findByPedidoId(id).isPresent()) {
+                redirectAttributes.addFlashAttribute("error", "Este pedido ya tiene boleta emitida");
+                return "redirect:/pedidos/detalle/" + id;
+            }
+
+            // 1. Generar número de boleta
+            String numeroBoleta = sunatService.generarNumeroBoleta();
+            System.out.println("📄 Número de Boleta: " + numeroBoleta);
+
+            // 2. Generar XML, firmar y enviar a SUNAT (todo en uno)
+            String ticket = sunatService.generarYEnviarBoleta(pedido, numeroBoleta);
+            System.out.println("✅ Ticket recibido: " + ticket);
+
+            // 3. Crear y guardar boleta en BD
+            Boleta boleta = new Boleta();
+            boleta.setPedido(pedido);
+            boleta.setNumeroBoleta(numeroBoleta);
+            boleta.setTotal(pedido.getMontoTotal());
+            boleta.setSerie("B001");
+
+            // Extraer correlativo del número
+            String[] partes = numeroBoleta.split("-");
+            if (partes.length == 2) {
+                boleta.setCorrelativo(Integer.parseInt(partes[1]));
+            }
+
+            // Datos del emisor (coinciden con application.properties)
+            boleta.setRucEmisor("10771318199");
+            boleta.setRazonSocialEmisor("LAVANDERIA S.A.C.");
+
+            // Datos del cliente
+            boleta.setClienteTipoDoc("DNI");
+            boleta.setClienteNumeroDoc(pedido.getCliente().getDni());
+            boleta.setClienteNombre(pedido.getCliente().getNombres() + " " + pedido.getCliente().getApellidoPaterno());
+
+            // Datos de SUNAT
+            boleta.setEnviadoSunat(true);
+            boleta.setFechaEmision(LocalDateTime.now());
+            boleta.setFechaEnvioSunat(LocalDateTime.now());
+            boleta.setTicket(ticket);
+            boleta.setSunatRespuesta("{\"success\": true, \"ticket\": \"" + ticket + "\"}");
+
+            // Guardar
+            boletaRepository.save(boleta);
+
+            // Actualizar pedido
+            pedido.setBoleta(boleta);
+            pedidoRepository.save(pedido);
+
+            redirectAttributes.addFlashAttribute("success",
+                    "Boleta " + numeroBoleta + " emitida correctamente. Ticket: " + ticket);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error", "Error al emitir boleta: " + e.getMessage());
         }
 
-        // Verificar si ya tiene boleta
-        if (boletaRepository.findByPedidoId(id).isPresent()) {
-            redirectAttributes.addFlashAttribute("error", "Este pedido ya tiene boleta emitida");
-            return "redirect:/pedidos/detalle/" + id;
-        }
-
-        // 1. Generar número de boleta
-        String numeroBoleta = sunatService.generarNumeroBoleta();
-        System.out.println("📄 Número de Boleta: " + numeroBoleta);
-
-        // 2. Generar XML, firmar y enviar a SUNAT (todo en uno)
-        String ticket = sunatService.generarYEnviarBoleta(pedido, numeroBoleta);
-        System.out.println("✅ Ticket recibido: " + ticket);
-
-        // 3. Crear y guardar boleta en BD
-        Boleta boleta = new Boleta();
-        boleta.setPedido(pedido);
-        boleta.setNumeroBoleta(numeroBoleta);
-        boleta.setTotal(pedido.getMontoTotal());
-        boleta.setSerie("B001");
-        
-        // Extraer correlativo del número
-        String[] partes = numeroBoleta.split("-");
-        if (partes.length == 2) {
-            boleta.setCorrelativo(Integer.parseInt(partes[1]));
-        }
-        
-        // Datos del emisor (coinciden con application.properties)
-        boleta.setRucEmisor("10771318199");
-        boleta.setRazonSocialEmisor("LAVANDERIA S.A.C.");
-        
-        // Datos del cliente
-        boleta.setClienteTipoDoc("DNI");
-        boleta.setClienteNumeroDoc(pedido.getCliente().getDni());
-        boleta.setClienteNombre(pedido.getCliente().getNombres() + " " + pedido.getCliente().getApellidoPaterno());
-        
-        // Datos de SUNAT
-        boleta.setEnviadoSunat(true);
-        boleta.setFechaEmision(LocalDateTime.now());
-        boleta.setFechaEnvioSunat(LocalDateTime.now());
-        boleta.setTicket(ticket);
-        boleta.setSunatRespuesta("{\"success\": true, \"ticket\": \"" + ticket + "\"}");
-
-        // Guardar
-        boletaRepository.save(boleta);
-        
-        // Actualizar pedido
-        pedido.setBoleta(boleta);
-        pedidoRepository.save(pedido);
-
-        redirectAttributes.addFlashAttribute("success", "Boleta " + numeroBoleta + " emitida correctamente. Ticket: " + ticket);
-
-    } catch (Exception e) {
-        e.printStackTrace();
-        redirectAttributes.addFlashAttribute("error", "Error al emitir boleta: " + e.getMessage());
+        return "redirect:/pedidos/detalle/" + id;
     }
-
-    return "redirect:/pedidos/detalle/" + id;
-}
 
     @PostMapping("/guardar")
     public String guardarPedido(
@@ -544,5 +550,60 @@ public String emitirBoleta(@PathVariable Long id, RedirectAttributes redirectAtt
             redirectAttributes.addFlashAttribute("error", "No se puede enviar notificación");
         }
         return "redirect:/pedidos";
+    }
+
+    // ============ NUEVO: DESCARGAR PDF ============
+    @GetMapping("/{id}/descargar-pdf")
+    public ResponseEntity<byte[]> descargarPdf(@PathVariable Long id) {
+        try {
+            Pedido pedido = pedidoRepository.findById(id).orElse(null);
+            if (pedido == null || pedido.getBoleta() == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            byte[] pdfBytes = boletaPdfService.generarPdfBoleta(pedido);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment",
+                    "boleta_" + pedido.getBoleta().getNumeroBoleta() + ".pdf");
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // ============ NUEVO: DESCARGAR XML ============
+    @GetMapping("/{id}/descargar-xml")
+    public ResponseEntity<byte[]> descargarXml(@PathVariable Long id) {
+        try {
+            Pedido pedido = pedidoRepository.findById(id).orElse(null);
+            if (pedido == null || pedido.getBoleta() == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // Generar el XML (sin firmar) para descarga
+            String xml = sunatService.generarXmlBoleta(pedido, pedido.getBoleta().getNumeroBoleta());
+
+            // Agregar el XML firmado si existe en la boleta
+            // Si guardaste el XML firmado en la boleta, puedes usarlo
+            // String xmlFirmado = pedido.getBoleta().getXmlFirmado();
+
+            byte[] xmlBytes = xml.getBytes(StandardCharsets.UTF_8);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_XML);
+            headers.setContentDispositionFormData("attachment",
+                    "boleta_" + pedido.getBoleta().getNumeroBoleta() + ".xml");
+
+            return new ResponseEntity<>(xmlBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }
