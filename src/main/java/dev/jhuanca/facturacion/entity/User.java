@@ -45,6 +45,8 @@ public class User {
     private String rol = "TRABAJADOR";
 
     private Boolean activo = true;
+    private String resetToken;
+    private LocalDateTime resetTokenExpiry;
 
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;

@@ -10,9 +10,9 @@ import dev.jhuanca.facturacion.repository.PedidoRepository;
 
 @Controller
 public class DashboardController {
-        @Autowired
+    @Autowired
     private PedidoRepository pedidoRepository;
-    
+
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
         model.addAttribute("totalPedidos", pedidoRepository.count());

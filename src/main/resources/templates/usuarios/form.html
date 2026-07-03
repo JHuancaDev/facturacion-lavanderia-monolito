@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+    <div th:fragment="content">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 th:text="${user.id != null} ? '✏️ Editar Usuario' : ' Nuevo Usuario'">
+                    Nuevo Usuario
+                </h4>
+                <a th:href="@{/usuarios}" class="btn btn-light btn-sm float-end">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+            <div class="card-body">
+                <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+                <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+                <form th:action="${user.id != null} ? @{/usuarios/actualizar/{id}(id=${user.id})} : @{/usuarios/crear}" 
+                      method="post"
+                      th:object="${user}">  <!-- ← ESTO ES LO QUE FALTA -->
+                    
+                    <input type="hidden" th:field="*{id}" />
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre de Usuario *</label>
+                            <input type="text" class="form-control" th:field="*{username}" 
+                                   required pattern="[a-zA-Z0-9_]{3,20}" 
+                                   title="3-20 caracteres, solo letras, números y guión bajo"/>
+                            <small class="form-text text-muted">3-20 caracteres, solo letras, números y guión bajo</small>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" th:text="${user.id != null} ? 'Nueva Contraseña (opcional)' : 'Contraseña *'">
+                                Contraseña *
+                            </label>
+                            <input type="password" class="form-control" th:field="*{password}" 
+                                   th:required="${user.id == null}" minlength="6"/>
+                            <small class="form-text text-muted">
+                                <span th:if="${user.id == null}">Mínimo 6 caracteres</span>
+                                <span th:if="${user.id != null}">Dejar en blanco para mantener la actual</span>
+                            </small>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre Completo *</label>
+                            <input type="text" class="form-control" th:field="*{nombre}" required/>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" th:field="*{email}" 
+                                   placeholder="ejemplo@correo.com"/>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Rol *</label>
+                            <select class="form-select" th:field="*{rol}" required>
+                                <option value="">Seleccionar...</option>
+                                <option th:each="rol : ${roles}" th:value="${rol}" th:text="${rol}"></option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" th:field="*{activo}">
+                                <option th:value="true">Activo</option>
+                                <option th:value="false">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> 
+                            <span th:text="${user.id != null} ? 'Actualizar' : 'Crear'">Crear</span>
+                        </button>
+                        <a th:href="@{/usuarios}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

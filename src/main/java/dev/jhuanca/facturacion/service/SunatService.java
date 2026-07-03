@@ -138,12 +138,12 @@ public class SunatService {
                                 .data(invoice)
                                 .render();
 
-                System.out.println("✅ XML GENERADO CON XBUILDER");
+                System.out.println(" XML GENERADO CON XBUILDER");
                 return xml;
         }
 
         public String firmarXML(String xml) throws Exception {
-                System.out.println("🔐 FIRMANDO XML CON XBUILDER...");
+                System.out.println("FIRMANDO XML CON XBUILDER...");
 
                 ClassPathResource resource = new ClassPathResource(rutaCertificado);
                 try (InputStream ksInputStream = resource.getInputStream()) {

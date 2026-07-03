@@ -21,10 +21,10 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         if (userRepository.findByUsername("admin").isEmpty()) {
             User admin = new User();
-            admin.setUsername("admin");
-            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setUsername("REBOTT");
+            admin.setPassword(passwordEncoder.encode("developer"));
             admin.setNombre("Administrador");
-            admin.setEmail("admin@lavanderia.com");
+            admin.setEmail("javier9hc@gmail.com");
             admin.setRol("ADMIN");
             admin.setActivo(true);
             admin.setFechaCreacion(LocalDateTime.now());
