@@ -23,7 +23,6 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class BoletaPdfService {
 
-    // Fuentes - creadas una sola vez para evitar problemas
     private static PdfFont normalFont;
     private static PdfFont boldFont;
 
@@ -44,8 +43,6 @@ public class BoletaPdfService {
         PdfDocument pdfDoc = new PdfDocument(writer);
         Document document = new Document(pdfDoc);
 
-        // ============ ENCABEZADO ============
-        // Título
         Paragraph titulo = new Paragraph("BOLETA DE VENTA ELECTRÓNICA")
                 .setFont(getBoldFont())
                 .setFontSize(18)
@@ -53,7 +50,6 @@ public class BoletaPdfService {
                 .setMarginBottom(10);
         document.add(titulo);
 
-        // Datos del emisor
         document.add(new Paragraph("LAVANDERÍA S.A.C.")
                 .setFont(getBoldFont())
                 .setFontSize(14)
@@ -63,38 +59,31 @@ public class BoletaPdfService {
         document.add(new Paragraph("")
                 .setMarginBottom(10));
 
-        // ============ DATOS DE LA BOLETA ============
         Table infoTable = new Table(UnitValue.createPercentArray(new float[]{1, 2}))
                 .setWidth(UnitValue.createPercentValue(100))
                 .setMarginBottom(10);
 
-        // Número de boleta
         infoTable.addCell(createLabelCell("N° Boleta:"));
         infoTable.addCell(createValueCell(pedido.getBoleta().getNumeroBoleta()));
 
-        // Fecha
         infoTable.addCell(createLabelCell("Fecha Emisión:"));
         infoTable.addCell(createValueCell(
                 pedido.getBoleta().getFechaEmision().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
         ));
 
-        // Cliente
         infoTable.addCell(createLabelCell("Cliente:"));
         infoTable.addCell(createValueCell(pedido.getCliente().getNombres() + " " +
                 pedido.getCliente().getApellidoPaterno()));
 
-        // DNI
         infoTable.addCell(createLabelCell("DNI:"));
         infoTable.addCell(createValueCell(pedido.getCliente().getDni()));
 
         document.add(infoTable);
 
-        // ============ TABLA DE DETALLE ============
         Table detailTable = new Table(UnitValue.createPercentArray(new float[]{1, 3, 1, 1, 2}))
                 .setWidth(UnitValue.createPercentValue(100))
                 .setMarginBottom(10);
 
-        // Encabezados
         String[] headers = {"#", "Descripción", "Peso", "Precio", "Subtotal"};
         for (String header : headers) {
             Cell headerCell = new Cell()
@@ -105,7 +94,6 @@ public class BoletaPdfService {
             detailTable.addCell(headerCell);
         }
 
-        // Filas de detalle
         int index = 1;
         for (DetallePedido detalle : pedido.getDetalles()) {
             detailTable.addCell(createValueCell(String.valueOf(index++), TextAlignment.CENTER));
@@ -117,7 +105,6 @@ public class BoletaPdfService {
 
         document.add(detailTable);
 
-        // ============ TOTAL ============
         Table totalTable = new Table(UnitValue.createPercentArray(new float[]{3, 1}))
                 .setWidth(UnitValue.createPercentValue(100))
                 .setMarginBottom(10);
@@ -136,7 +123,6 @@ public class BoletaPdfService {
 
         document.add(totalTable);
 
-        // ============ PIE DE PÁGINA ============
         document.add(new Paragraph("")
                 .setMarginTop(20));
 
@@ -148,13 +134,11 @@ public class BoletaPdfService {
                 .setFontSize(8)
                 .setTextAlignment(TextAlignment.CENTER));
 
-        // Cerrar documento
         document.close();
 
         return baos.toByteArray();
     }
 
-    // ✅ CORREGIDO: Métodos con manejo de excepciones
     private Cell createLabelCell(String text) {
         try {
             return new Cell()
@@ -162,7 +146,6 @@ public class BoletaPdfService {
                     .setBorder(Border.NO_BORDER)
                     .setPadding(2);
         } catch (Exception e) {
-            // Fallback: sin fuente personalizada
             return new Cell()
                     .add(new Paragraph(text))
                     .setBorder(Border.NO_BORDER)
@@ -200,7 +183,6 @@ public class BoletaPdfService {
         }
     }
 
-    // ✅ Métodos seguros para obtener las fuentes
     private PdfFont getNormalFont() throws Exception {
         if (normalFont == null) {
             normalFont = PdfFontFactory.createFont();

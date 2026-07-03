@@ -5,7 +5,7 @@
     <div th:fragment="content">
         <div class="card">
             <div class="card-header bg-primary text-white d-flex justify-content-between">
-                <h4>📄 Lista de Boletas Emitidas</h4>
+                <h4>Lista de Boletas Emitidas</h4>
                 <span class="badge bg-light text-dark" th:text="${boletas.size()} + ' boletas'"></span>
             </div>
             <div class="card-body">
@@ -18,8 +18,8 @@
                     <div class="col-md-3">
                         <select id="filtroEstado" class="form-select">
                             <option value="">Todos los estados</option>
-                            <option value="true">✅ Enviadas a SUNAT</option>
-                            <option value="false">⏳ Pendientes</option>
+                            <option value="true">Enviadas a SUNAT</option>
+                            <option value="false">Pendientes</option>
                         </select>
                     </div>
                 </div>
@@ -55,10 +55,10 @@
                                 <td th:text="${#temporals.format(boleta.fechaEmision, 'dd/MM/yyyy HH:mm')}"></td>
                                 <td>
                                     <span th:if="${boleta.enviadoSunat}" class="badge bg-success">
-                                        ✅ Enviada
+                                        Enviada
                                     </span>
                                     <span th:unless="${boleta.enviadoSunat}" class="badge bg-warning">
-                                        ⏳ Pendiente
+                                        Pendiente
                                     </span>
                                     <br>
                                     <small th:if="${boleta.sunatCodigo}" th:text="'Código: ' + ${boleta.sunatCodigo}"
@@ -71,29 +71,25 @@
                                         Ver Pedido #<span th:text="${boleta.pedido.id}"></span>
                                     </a>
                                 </td>
-                                <!-- En src/main/resources/templates/boleta/list.html -->
-                                <!-- Actualiza la columna de acciones -->
-
+                                
                                 <td>
                                     <a th:href="@{/pedidos/{id}/descargar-pdf(id=${boleta.pedido.id})}"
                                         class="btn btn-sm btn-danger" title="Descargar PDF">
-                                        📄 PDF
+                                        PDF
                                     </a>
                                     <a th:href="@{/pedidos/{id}/descargar-xml(id=${boleta.pedido.id})}"
                                         class="btn btn-sm btn-warning" title="Descargar XML">
-                                        📋 XML
+                                        XML
                                     </a>
                                     <a th:href="@{/pedidos/{id}/descargar-boleta(id=${boleta.pedido.id})}"
                                         class="btn btn-sm btn-success" title="Descargar TXT">
-                                        📝 TXT
+                                        TXT
                                     </a>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-
-                <!-- Resumen -->
                 <div class="alert alert-info mt-3">
                     <strong>Resumen:</strong>
                     <span th:text="${boletas.size()} + ' boletas emitidas'"></span>
@@ -119,7 +115,6 @@
                     filas.forEach(fila => {
                         let mostrar = true;
 
-                        // Filtro por búsqueda
                         if (busqueda) {
                             const texto = fila.textContent.toLowerCase();
                             if (!texto.includes(busqueda)) {
@@ -127,7 +122,6 @@
                             }
                         }
 
-                        // Filtro por estado SUNAT
                         if (estado !== '' && mostrar) {
                             const celdaEstado = fila.querySelector('td:nth-child(6)');
                             const tieneEnviado = celdaEstado.textContent.includes('Enviada');

@@ -13,6 +13,8 @@ import dev.jhuanca.facturacion.enums.EstadoPedido;
 public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     List<Pedido> findByEstado(EstadoPedido estado);
 
+    List<Pedido> findAllByOrderByIdDesc();
+
     List<Pedido> findByClienteDni(String dni);
 
     List<Pedido> findByFechaRegistroBetween(LocalDateTime inicio, LocalDateTime fin);

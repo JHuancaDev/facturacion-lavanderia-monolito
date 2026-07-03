@@ -33,7 +33,7 @@ public class Boleta {
     private Long id;
 
     @Column(unique = true, nullable = false)
-    private String numeroBoleta;   // formato B001-000001
+    private String numeroBoleta;
 
     @OneToOne
     @JoinColumn(name = "pedido_id")
@@ -44,16 +44,13 @@ public class Boleta {
     private Integer correlativo;
     private LocalDateTime fechaEmision;
 
-    // Datos del emisor
     private String rucEmisor;
     private String razonSocialEmisor;
 
-    // Datos del cliente
     private String clienteTipoDoc;
     private String clienteNumeroDoc;
     private String clienteNombre;
 
-    // Respuesta de SUNAT
     private String sunatRespuesta;
     private String sunatCodigo;
     private String sunatDescripcion;

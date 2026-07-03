@@ -4,13 +4,13 @@
     <title>Login - Lavandería</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/bootstrap-custom.css}">
 </head>
-<body class="bg-light">
+<body class="" th:style="|background-image: url('@{/image/login_fondo.svg}');|">
     <div class="container">
         <div class="row justify-content-center mt-5">
             <div class="col-md-4">
-                <div class="card shadow">
+                <div class="    ">
                     <div class="card-body">
                         <div class="text-center mb-4">
                             <img style="width: 8rem;" 
@@ -42,13 +42,10 @@
                         
                         <div class="text-center mt-3">
                             <small>
-                                <a href="#">¿Olvidaste tu contraseña?</a>
+                                <a class="fw-bold" href="#">¿Olvidaste tu contraseña?</a>
                             </small>
                         </div>
                     </div>
-                </div>
-                <div class="text-center mt-3">
-                    <small class="text-muted">Credenciales: admin/admin123 | trabajador/trabajador123</small>
                 </div>
             </div>
         </div>

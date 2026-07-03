@@ -80,9 +80,6 @@ public class SunatService {
 
         private final DateProvider dateProvider = LocalDate::now;
 
-        /**
-         * Genera el número de boleta correlativo
-         */
         public synchronized String generarNumeroBoleta() {
                 Long ultimoCorrelativo = boletaRepository.findMaxCorrelativo();
                 if (ultimoCorrelativo == null) {
@@ -93,16 +90,9 @@ public class SunatService {
                 return serieBoleta + "-" + numeroFormateado;
         }
 
-        /**
-         * Genera el XML de la boleta usando XBuilder
-         */
         public String generarXmlBoleta(Pedido pedido, String numeroBoleta) throws Exception {
-                System.out.println("📝 GENERANDO XML DE BOLETA CON XBUILDER...");
 
-                // Extraer el número correlativo
                 String numero = numeroBoleta.split("-")[1];
-
-                // Construir la boleta con XBuilder
                 Invoice.InvoiceBuilder builder = Invoice.builder()
                                 .serie(serieBoleta)
                                 .numero(Integer.parseInt(numero))
@@ -110,8 +100,6 @@ public class SunatService {
                                                 .ruc(ruc)
                                                 .razonSocial(razonSocial)
                                                 .build());
-
-                // Agregar cliente
                 if (pedido.getCliente() != null) {
                         String dni = pedido.getCliente().getDni();
                         if (dni == null || dni.isEmpty() || dni.equals("99999999")) {
@@ -127,7 +115,6 @@ public class SunatService {
                                         .build());
                 }
 
-                // Agregar detalles
                 for (DetallePedido detalle : pedido.getDetalles()) {
                         builder.detalle(DocumentoVentaDetalle.builder()
                                         .descripcion(detalle.getServicio().getNameService() +
@@ -143,11 +130,9 @@ public class SunatService {
 
                 Invoice invoice = builder.build();
 
-                // Enriquecer el XML (agregar totales, impuestos, etc.)
                 ContentEnricher enricher = new ContentEnricher(defaults, dateProvider);
                 enricher.enrich(invoice);
 
-                // Renderizar el XML
                 String xml = TemplateProducer.getInstance()
                                 .getInvoice()
                                 .data(invoice)
@@ -157,13 +142,9 @@ public class SunatService {
                 return xml;
         }
 
-        /**
-         * Firma el XML usando el certificado digital
-         */
         public String firmarXML(String xml) throws Exception {
                 System.out.println("🔐 FIRMANDO XML CON XBUILDER...");
 
-                // Cargar el certificado
                 ClassPathResource resource = new ClassPathResource(rutaCertificado);
                 try (InputStream ksInputStream = resource.getInputStream()) {
                         CertificateDetails certificate = CertificateDetailsFactory.create(
@@ -173,20 +154,15 @@ public class SunatService {
                         X509Certificate x509Certificate = certificate.getX509Certificate();
                         PrivateKey privateKey = certificate.getPrivateKey();
 
-                        // ✅ CORREGIDO: Usar un valor válido para Id (sin espacios ni caracteres
-                        // especiales)
-                        // El tipo ID solo permite: letras, números, guiones bajos y puntos
                         String idFirma = "Signature_" + System.currentTimeMillis();
                         System.out.println("   ID de firma: " + idFirma);
 
-                        // Firmar el XML
                         Document signedXML = XMLSigner.signXML(
                                         xml,
-                                        idFirma, // ← CORREGIDO: valor válido para ID
+                                        idFirma,
                                         x509Certificate,
                                         privateKey);
 
-                        // Convertir a String
                         byte[] bytesFromDocument = XmlSignatureHelper.getBytesFromDocument(signedXML);
                         String xmlFirmado = new String(bytesFromDocument, StandardCharsets.ISO_8859_1);
 
@@ -196,7 +172,6 @@ public class SunatService {
         }
 
         public String enviarBoletaSunat(String xmlFirmado, String numeroBoleta) throws Exception {
-                System.out.println("📤 ENVIANDO A SUNAT CON XSENDER...");
 
                 CompanyURLs companyURLs = CompanyURLs.builder()
                                 .invoice(urlSunat)
@@ -233,7 +208,6 @@ public class SunatService {
                 }
                 System.out.println("===========================");
 
-                // Verificar éxito
                 boolean esExitoso = false;
                 String ticket = null;
                 String mensaje = "Error desconocido";
@@ -244,7 +218,6 @@ public class SunatService {
                         esExitoso = true;
                 }
 
-                // 2. Verificar Metadata (responseCode=0 = éxito)
                 if (response.getMetadata() != null && response.getMetadata().getResponseCode() != null) {
                         int code = response.getMetadata().getResponseCode();
                         String description = response.getMetadata().getDescription();
@@ -261,26 +234,18 @@ public class SunatService {
                 }
 
                 if (esExitoso) {
-                        System.out.println("✅ BOLETA ENVIADA EXITOSAMENTE");
-                        System.out.println("   Ticket: " + ticket);
-                        System.out.println("   Mensaje SUNAT: " + mensaje);
                         return ticket;
                 } else {
                         throw new Exception("Error al enviar boleta: " + mensaje);
                 }
         }
 
-        /**
-         * Método principal que integra todo el proceso
-         */
         public String generarYEnviarBoleta(Pedido pedido, String numeroBoleta) throws Exception {
-                // 1. Generar XML
+                
                 String xml = generarXmlBoleta(pedido, numeroBoleta);
 
-                // 2. Firmar XML
                 String xmlFirmado = firmarXML(xml);
 
-                // 3. Enviar a SUNAT
                 String ticket = enviarBoletaSunat(xmlFirmado, numeroBoleta);
 
                 return ticket;

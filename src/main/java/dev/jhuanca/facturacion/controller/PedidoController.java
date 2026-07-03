@@ -69,7 +69,7 @@ public class PedidoController {
 
     @GetMapping
     public String listarPedidos(Model model) {
-        model.addAttribute("pedidos", pedidoRepository.findAll());
+        model.addAttribute("pedidos", pedidoRepository.findAllByOrderByIdDesc());
         model.addAttribute("template", "pedido/list");
         return "layout/base";
     }
@@ -78,7 +78,6 @@ public class PedidoController {
     public String nuevoPedido(Model model) {
         List<Servicios> servicios = serviciosRepository.findByActivoTrue();
 
-        // ⚠️ LOG PARA DEPURAR
         System.out.println("=== SERVICIOS ENCONTRADOS: " + servicios.size() + " ===");
         for (Servicios s : servicios) {
             System.out.println("ID: " + s.getId() + " - Nombre: " + s.getNameService() + " - Precio: " + s.getPrecio());
@@ -92,10 +91,6 @@ public class PedidoController {
         return "layout/base";
     }
 
-    // src/main/java/dev/jhuanca/facturacion/controller/PedidoController.java
-
-    // src/main/java/dev/jhuanca/facturacion/controller/PedidoController.java
-
     @GetMapping("/{id}/descargar-boleta")
     public ResponseEntity<byte[]> descargarBoleta(@PathVariable Long id) {
         try {
@@ -103,8 +98,6 @@ public class PedidoController {
             if (pedido == null || pedido.getBoleta() == null) {
                 return ResponseEntity.notFound().build();
             }
-
-            // Generar contenido de la boleta
             StringBuilder contenido = new StringBuilder();
             contenido.append("========================================\n");
             contenido.append("         BOLETA DE VENTA              \n");
@@ -154,53 +147,43 @@ public class PedidoController {
                 return "redirect:/pedidos";
             }
 
-            // Verificar si ya tiene boleta
             if (boletaRepository.findByPedidoId(id).isPresent()) {
                 redirectAttributes.addFlashAttribute("error", "Este pedido ya tiene boleta emitida");
                 return "redirect:/pedidos/detalle/" + id;
             }
 
-            // 1. Generar número de boleta
             String numeroBoleta = sunatService.generarNumeroBoleta();
             System.out.println("📄 Número de Boleta: " + numeroBoleta);
 
-            // 2. Generar XML, firmar y enviar a SUNAT (todo en uno)
             String ticket = sunatService.generarYEnviarBoleta(pedido, numeroBoleta);
             System.out.println("✅ Ticket recibido: " + ticket);
 
-            // 3. Crear y guardar boleta en BD
             Boleta boleta = new Boleta();
             boleta.setPedido(pedido);
             boleta.setNumeroBoleta(numeroBoleta);
             boleta.setTotal(pedido.getMontoTotal());
             boleta.setSerie("B001");
 
-            // Extraer correlativo del número
             String[] partes = numeroBoleta.split("-");
             if (partes.length == 2) {
                 boleta.setCorrelativo(Integer.parseInt(partes[1]));
             }
 
-            // Datos del emisor (coinciden con application.properties)
             boleta.setRucEmisor("10771318199");
             boleta.setRazonSocialEmisor("LAVANDERIA S.A.C.");
 
-            // Datos del cliente
             boleta.setClienteTipoDoc("DNI");
             boleta.setClienteNumeroDoc(pedido.getCliente().getDni());
             boleta.setClienteNombre(pedido.getCliente().getNombres() + " " + pedido.getCliente().getApellidoPaterno());
 
-            // Datos de SUNAT
             boleta.setEnviadoSunat(true);
             boleta.setFechaEmision(LocalDateTime.now());
             boleta.setFechaEnvioSunat(LocalDateTime.now());
             boleta.setTicket(ticket);
             boleta.setSunatRespuesta("{\"success\": true, \"ticket\": \"" + ticket + "\"}");
 
-            // Guardar
             boletaRepository.save(boleta);
 
-            // Actualizar pedido
             pedido.setBoleta(boleta);
             pedidoRepository.save(pedido);
 
@@ -239,22 +222,18 @@ public class PedidoController {
             System.out.println("Servicios: " + servicioIds);
             System.out.println("Pesos: " + pesos);
 
-            // Validar que haya servicios
             if (servicioIds == null || servicioIds.isEmpty()) {
                 redirectAttributes.addFlashAttribute("error", "Debe agregar al menos un servicio");
                 return "redirect:/pedidos/nuevo";
             }
 
-            // Determinar el DNI
             String dni = (clienteDni != null && !clienteDni.isEmpty()) ? clienteDni : CLIENTE_DEFAULT_DNI;
 
-            // Buscar o crear cliente
             Cliente cliente = clienteRepository.findById(dni)
                     .orElseGet(() -> {
                         Cliente nuevoCliente = new Cliente();
                         nuevoCliente.setDni(dni);
 
-                        // Usar los valores proporcionados o valores por defecto
                         nuevoCliente.setNombres((clienteNombres != null && !clienteNombres.isEmpty())
                                 ? clienteNombres
                                 : "CLIENTE");
@@ -274,7 +253,6 @@ public class PedidoController {
                         return clienteRepository.save(nuevoCliente);
                     });
 
-            // Si el cliente ya existe, actualizar los datos si se proporcionaron
             boolean clienteActualizado = false;
             if (clienteNombres != null && !clienteNombres.isEmpty()) {
                 cliente.setNombres(clienteNombres);
@@ -297,7 +275,6 @@ public class PedidoController {
                 clienteRepository.save(cliente);
             }
 
-            // Crear pedido
             Pedido pedido = new Pedido();
             pedido.setCliente(cliente);
             pedido.setFechaRegistro(LocalDateTime.now());
@@ -305,10 +282,9 @@ public class PedidoController {
             pedido.setObservacionesGenerales(observacionesGenerales);
             pedido.setMontoTotal(0.0);
 
-            // Guardar pedido primero
             pedido = pedidoRepository.save(pedido);
 
-            // Crear detalles
+
             List<DetallePedido> detalles = new ArrayList<>();
             int maxSize = servicioIds.size();
 
@@ -343,10 +319,8 @@ public class PedidoController {
                 return "redirect:/pedidos/nuevo";
             }
 
-            // Guardar detalles
             detallePedidoRepository.saveAll(detalles);
 
-            // Actualizar pedido
             pedido.getDetalles().clear();
             pedido.getDetalles().addAll(detalles);
             pedido.calcularTotal();
@@ -370,6 +344,21 @@ public class PedidoController {
             if (pedido == null) {
                 return ResponseEntity.badRequest().body("Pedido no encontrado");
             }
+            if (pedido.getEstado() == EstadoPedido.ENTREGADO) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("mensaje", "El pedido ya fue entregado y no puede modificarse.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            if (pedido.getEstado() == EstadoPedido.FINALIZADO
+                    && estado != EstadoPedido.ENTREGADO) {
+
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("mensaje", "Un pedido finalizado solo puede pasar a ENTREGADO.");
+                return ResponseEntity.badRequest().body(response);
+            }
 
             pedido.setEstado(estado);
 
@@ -381,7 +370,6 @@ public class PedidoController {
                 pedidoRepository.save(pedido);
             }
 
-            // Devolver respuesta JSON
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("estado", estado.toString());
@@ -397,9 +385,6 @@ public class PedidoController {
         }
     }
 
-    // src/main/java/dev/jhuanca/facturacion/controller/PedidoController.java
-
-    // Agrega este método para generar el enlace de WhatsApp
     @GetMapping("/{id}/whatsapp-link")
     @ResponseBody
     public ResponseEntity<Map<String, String>> generarWhatsAppLink(@PathVariable Long id) {
@@ -412,14 +397,12 @@ public class PedidoController {
             Cliente cliente = pedido.getCliente();
             String telefono = cliente.getTelefono();
 
-            // Si no tiene teléfono, devolver error
             if (telefono == null || telefono.isEmpty()) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "El cliente no tiene número de teléfono registrado");
                 return ResponseEntity.badRequest().body(error);
             }
 
-            // Construir mensaje personalizado
             String mensaje = String.format(
                     "🏪 *LAVANDERÍA* 🏪\n\n" +
                             "✅ *SU PEDIDO ESTÁ LISTO* ✅\n\n" +
@@ -435,10 +418,8 @@ public class PedidoController {
                     pedido.getMontoTotal(),
                     pedido.getUbicacion() != null ? pedido.getUbicacion().getCodigoUbicacion() : "Pendiente");
 
-            // Codificar mensaje para URL
             String mensajeCodificado = java.net.URLEncoder.encode(mensaje, "UTF-8");
 
-            // Generar enlace de WhatsApp
             String whatsappLink = "https://wa.me/51" + telefono + "?text=" + mensajeCodificado;
 
             Map<String, String> response = new HashMap<>();
@@ -455,24 +436,18 @@ public class PedidoController {
         }
     }
 
-    // src/main/java/dev/jhuanca/facturacion/controller/PedidoController.java
-
     @GetMapping("/detalle/{id}")
     public String verDetalle(@PathVariable Long id, Model model) {
-        // Cargar el pedido con todas sus relaciones
+
         Pedido pedido = pedidoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
 
-        // ⚠️ FORZAR LA CARGA DE LA RELACIÓN BOLETA
-        // Esto asegura que Hibernate cargue la boleta asociada
         if (pedido.getBoleta() != null) {
-            // La boleta ya está cargada
             System.out.println("Boleta encontrada: " + pedido.getBoleta().getNumeroBoleta());
         } else {
             System.out.println("No hay boleta para este pedido");
         }
 
-        // También verificar que el estado sea FINALIZADO
         System.out.println("Estado del pedido: " + pedido.getEstado());
 
         model.addAttribute("pedido", pedido);
@@ -491,7 +466,6 @@ public class PedidoController {
             if (estado == EstadoPedido.FINALIZADO) {
                 pedido.setFechaEntrega(LocalDateTime.now());
                 pedidoRepository.save(pedido);
-                // Enviar notificación WhatsApp
                 whatsAppService.enviarNotificacionPedidoListo(pedido);
                 redirectAttributes.addFlashAttribute("success", "Pedido finalizado y notificación enviada");
             } else {
@@ -552,7 +526,6 @@ public class PedidoController {
         return "redirect:/pedidos";
     }
 
-    // ============ NUEVO: DESCARGAR PDF ============
     @GetMapping("/{id}/descargar-pdf")
     public ResponseEntity<byte[]> descargarPdf(@PathVariable Long id) {
         try {
@@ -576,7 +549,6 @@ public class PedidoController {
         }
     }
 
-    // ============ NUEVO: DESCARGAR XML ============
     @GetMapping("/{id}/descargar-xml")
     public ResponseEntity<byte[]> descargarXml(@PathVariable Long id) {
         try {
@@ -585,12 +557,7 @@ public class PedidoController {
                 return ResponseEntity.notFound().build();
             }
 
-            // Generar el XML (sin firmar) para descarga
             String xml = sunatService.generarXmlBoleta(pedido, pedido.getBoleta().getNumeroBoleta());
-
-            // Agregar el XML firmado si existe en la boleta
-            // Si guardaste el XML firmado en la boleta, puedes usarlo
-            // String xmlFirmado = pedido.getBoleta().getXmlFirmado();
 
             byte[] xmlBytes = xml.getBytes(StandardCharsets.UTF_8);
 

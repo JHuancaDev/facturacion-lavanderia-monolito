@@ -17,8 +17,7 @@ public class AuthC {
 
     @GetMapping("/login")
     public String login(Model model) {
-        // No usar layout/base para login
-        return "auth/login"; // ← Cambiar a la página de login simple
+        return "auth/login"; 
     }
 
 }

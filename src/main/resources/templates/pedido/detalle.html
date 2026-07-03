@@ -1,4 +1,4 @@
-<!-- src/main/resources/templates/pedido/detalle.html -->
+
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
@@ -8,43 +8,33 @@
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4>Detalle del Pedido #<span th:text="${pedido.id}"></span></h4>
                 <div>
-                    <!-- Botón para emitir boleta - SOLO si está FINALIZADO y NO tiene boleta -->
                     <a th:if="${pedido.estado == 'FINALIZADO' and pedido.boleta == null}"
                         th:href="@{/pedidos/{id}/emitir-boleta(id=${pedido.id})}" class="btn btn-success"
                         onclick="return confirm('¿Estás seguro de emitir la boleta para este pedido?')">
-                        🧾 Emitir Boleta
+                        Emitir Boleta
                     </a>
-                    <!-- Mostrar número de boleta si existe -->
                     <span th:if="${pedido.boleta != null}" class="badge bg-success" style="font-size: 1rem;">
-                        ✅ Boleta: <span th:text="${pedido.boleta.numeroBoleta}"></span>
+                        Boleta: <span th:text="${pedido.boleta.numeroBoleta}"></span>
                     </span>
-                    <!-- Mensaje si no está FINALIZADO -->
                     <span th:if="${pedido.estado != 'FINALIZADO'}" class="badge bg-warning">
-                        ⚠️ Finalizar pedido para emitir boleta
+                        Finalizar pedido para emitir boleta
                     </span>
                 </div>
             </div>
             <div>
-                <!-- Botón para emitir boleta - USANDO th:if con comparación exacta -->
-                <a th:if="${pedido.estado.name() == 'FINALIZADO' and pedido.boleta == null}"
+               <a th:if="${pedido.estado.name() == 'FINALIZADO' and pedido.boleta == null}"
                     th:href="@{/pedidos/{id}/emitir-boleta(id=${pedido.id})}" class="btn btn-success"
                     onclick="return confirm('¿Estás seguro de emitir la boleta para este pedido?')">
-                    🧾 Emitir Boleta
+                    Emitir Boleta
                 </a>
 
-                <!-- Mostrar número de boleta si existe -->
                 <span th:if="${pedido.boleta != null}" class="badge bg-success" style="font-size: 1rem;">
-                    ✅ Boleta: <span th:text="${pedido.boleta.numeroBoleta}"></span>
+                    Boleta: <span th:text="${pedido.boleta.numeroBoleta}"></span>
                 </span>
 
-                <!-- Mensaje si no está FINALIZADO -->
-                <span th:if="${pedido.estado.name() != 'FINALIZADO'}" class="badge bg-warning">
-                    ⚠️ Finalizar pedido para emitir boleta
-                </span>
 
-                <!-- Mensaje si ya tiene boleta -->
                 <span th:if="${pedido.boleta != null}" class="badge bg-info" style="font-size: 1rem;">
-                    📄 Boleta emitida
+                    Boleta emitida
                 </span>
             </div>
         </div>
@@ -106,31 +96,27 @@
                 </tfoot>
             </table>
 
-            <!-- En src/main/resources/templates/pedido/detalle.html -->
-            <!-- En la sección de acciones, agrega estos botones -->
-
+          
             <div class="mt-3">
                 <a th:href="@{/pedidos}" class="btn btn-secondary">Volver</a>
 
                 <a th:href="@{/pedidos/asignar-ubicacion/__${pedido.id}__}" th:if="${pedido.ubicacion == null}"
                     class="btn btn-warning">Asignar Ubicación</a>
 
-                <!-- ✅ BOTÓN DESCARGAR PDF -->
+                
                 <a th:if="${pedido.boleta != null}" th:href="@{/pedidos/{id}/descargar-pdf(id=${pedido.id})}"
                     class="btn btn-danger">
-                    📄 Descargar PDF
+                    Descargar PDF
                 </a>
 
-                <!-- ✅ BOTÓN DESCARGAR XML -->
                 <a th:if="${pedido.boleta != null}" th:href="@{/pedidos/{id}/descargar-xml(id=${pedido.id})}"
                     class="btn btn-warning">
-                    📋 Descargar XML
+                    Descargar XML
                 </a>
 
-                <!-- Botón para descargar TXT (mantener por compatibilidad) -->
                 <a th:if="${pedido.boleta != null}" th:href="@{/pedidos/{id}/descargar-boleta(id=${pedido.id})}"
                     class="btn btn-info">
-                    📝 Descargar TXT
+                    Descargar TXT
                 </a>
             </div>
         </div>

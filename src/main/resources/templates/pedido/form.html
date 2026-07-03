@@ -1,326 +1,324 @@
-<!-- src/main/resources/templates/pedido/form.html -->
+
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+
 <body>
-<div th:fragment="content">
-    <div class="card">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h4>Nuevo Pedido</h4>
-        </div>
-        <div class="card-body">
-            <form th:action="@{/pedidos/guardar}" method="post" id="pedidoForm" onsubmit="return validarFormulario()">
-                <!-- Datos del Cliente -->
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">Datos del Cliente</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <label class="form-label">DNI</label>
-                                <input type="text" name="clienteDni" class="form-control" 
-                                       placeholder="DNI (opcional)" id="dniInput">
-                                <small class="text-muted">Dejar vacío para cliente general</small>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Nombres</label>
-                                <input type="text" name="clienteNombres" class="form-control" 
-                                       placeholder="Nombres" id="nombresInput">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Apellido Paterno</label>
-                                <input type="text" name="clienteApellidoPaterno" class="form-control" 
-                                       placeholder="Apellido Paterno">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Apellido Materno</label>
-                                <input type="text" name="clienteApellidoMaterno" class="form-control" 
-                                       placeholder="Apellido Materno">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Teléfono</label>
-                                <input type="text" name="telefono" class="form-control" 
-                                       placeholder="Teléfono" id="telefonoInput">
-                                <small class="text-muted">Para notificaciones WhatsApp</small>
+    <div th:fragment="content">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4>Nuevo Pedido</h4>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/pedidos/guardar}" method="post" id="pedidoForm"
+                    onsubmit="return validarFormulario()">
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Datos del Cliente</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">DNI</label>
+                                    <input type="text" name="clienteDni" class="form-control"
+                                        placeholder="DNI (opcional)" id="dniInput">
+                                    <small class="text-muted">Dejar vacío para cliente general</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Nombres</label>
+                                    <input type="text" name="clienteNombres" class="form-control" placeholder="Nombres"
+                                        id="nombresInput">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Apellido Paterno</label>
+                                    <input type="text" name="clienteApellidoPaterno" class="form-control"
+                                        placeholder="Apellido Paterno">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Apellido Materno</label>
+                                    <input type="text" name="clienteApellidoMaterno" class="form-control"
+                                        placeholder="Apellido Materno">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Teléfono</label>
+                                    <input type="text" name="telefono" class="form-control" placeholder="Teléfono"
+                                        id="telefonoInput">
+                                    <small class="text-muted">Para notificaciones WhatsApp</small>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Servicios -->
-                <div class="card mb-3">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">Servicios</h5>
+
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Servicios</h5>
+                        </div>
+                        <div class="card-body" id="servicios-container">
+                         
+                            <div class="servicio-item row mb-3 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label"><strong>Servicio 1</strong></label>
+                                    <select name="servicioIds" class="form-select">
+                                        <option value="">Seleccionar...</option>
+                                        <option th:each="serv : ${servicios}" th:value="${serv.id}"
+                                            th:text="${serv.nameService + ' - S/ ' + serv.precio + '/kg'}"
+                                            th:data-precio="${serv.precio}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Peso (kg)</label>
+                                    <input required type="number" step="0.1" name="pesos"
+                                        class="form-control peso-input" min="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Color</label>
+                                    <input required type="text" name="colores" class="form-control">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Observaciones</label>
+                                    <input required type="text" name="observaciones" class="form-control">
+                                </div>
+                            </div>
+
+                            
+                            <div class="servicio-item row mb-3 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label"><strong>Servicio 2</strong></label>
+                                    <select name="servicioIds" class="form-select">
+                                        <option value="">Seleccionar...</option>
+                                        <option th:each="serv : ${servicios}" th:value="${serv.id}"
+                                            th:text="${serv.nameService + ' - S/ ' + serv.precio + '/kg'}"
+                                            th:data-precio="${serv.precio}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Peso (kg)</label>
+                                    <input type="number" step="0.1" name="pesos" class="form-control peso-input"
+                                        min="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Color</label>
+                                    <input type="text" name="colores" class="form-control">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Observaciones</label>
+                                    <input type="text" name="observaciones" class="form-control">
+                                </div>
+                            </div>
+
+                            <!-- Fila 3 -->
+                            <div class="servicio-item row mb-3 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label"><strong>Servicio 3</strong></label>
+                                    <select name="servicioIds" class="form-select">
+                                        <option value="">Seleccionar...</option>
+                                        <option th:each="serv : ${servicios}" th:value="${serv.id}"
+                                            th:text="${serv.nameService + ' - S/ ' + serv.precio + '/kg'}"
+                                            th:data-precio="${serv.precio}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Peso (kg)</label>
+                                    <input type="number" step="0.1" name="pesos" class="form-control peso-input"
+                                        min="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Color</label>
+                                    <input type="text" name="colores" class="form-control">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Observaciones</label>
+                                    <input type="text" name="observaciones" class="form-control">
+                                </div>
+                            </div>
+
+                            <!-- Fila 4 -->
+                            <div class="servicio-item row mb-3 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label"><strong>Servicio 4</strong></label>
+                                    <select name="servicioIds" class="form-select">
+                                        <option value="">Seleccionar...</option>
+                                        <option th:each="serv : ${servicios}" th:value="${serv.id}"
+                                            th:text="${serv.nameService + ' - S/ ' + serv.precio + '/kg'}"
+                                            th:data-precio="${serv.precio}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Peso (kg)</label>
+                                    <input type="number" step="0.1" name="pesos" class="form-control peso-input"
+                                        min="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Color</label>
+                                    <input type="text" name="colores" class="form-control">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Observaciones</label>
+                                    <input type="text" name="observaciones" class="form-control">
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body" id="servicios-container">
-                        <!-- Fila 1 -->
-                        <div class="servicio-item row mb-3 align-items-end">
-                            <div class="col-md-3">
-                                <label class="form-label">Servicio 1</label>
-                                <select name="servicioIds" class="form-select">
-                                    <option value="">Seleccionar...</option>
-                                    <option th:each="serv : ${servicios}" 
-                                            th:value="${serv.id}" 
-                                            th:text="${serv.nameService + ' - S/ ' + serv.precio + '/kg'}"
-                                            th:data-precio="${serv.precio}">
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Peso (kg)</label>
-                                <input required type="number" step="0.1" name="pesos" class="form-control peso-input" min="0">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Color</label>
-                                <input required type="text" name="colores" class="form-control">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Observaciones</label>
-                                <input required type="text" name="observaciones" class="form-control">
-                            </div>
-                        </div>
-                        
-                        <!-- Fila 2 -->
-                        <div class="servicio-item row mb-3 align-items-end">
-                            <div class="col-md-3">
-                                <label class="form-label">Servicio 2</label>
-                                <select name="servicioIds" class="form-select">
-                                    <option value="">Seleccionar...</option>
-                                    <option th:each="serv : ${servicios}" 
-                                            th:value="${serv.id}" 
-                                            th:text="${serv.nameService + ' - S/ ' + serv.precio + '/kg'}"
-                                            th:data-precio="${serv.precio}">
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Peso (kg)</label>
-                                <input type="number" step="0.1" name="pesos" class="form-control peso-input" min="0">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Color</label>
-                                <input type="text" name="colores" class="form-control">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Observaciones</label>
-                                <input type="text" name="observaciones" class="form-control">
-                            </div>
-                        </div>
-                        
-                        <!-- Fila 3 -->
-                        <div class="servicio-item row mb-3 align-items-end">
-                            <div class="col-md-3">
-                                <label class="form-label">Servicio 3</label>
-                                <select name="servicioIds" class="form-select">
-                                    <option value="">Seleccionar...</option>
-                                    <option th:each="serv : ${servicios}" 
-                                            th:value="${serv.id}" 
-                                            th:text="${serv.nameService + ' - S/ ' + serv.precio + '/kg'}"
-                                            th:data-precio="${serv.precio}">
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Peso (kg)</label>
-                                <input type="number" step="0.1" name="pesos" class="form-control peso-input" min="0">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Color</label>
-                                <input type="text" name="colores" class="form-control">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Observaciones</label>
-                                <input type="text" name="observaciones" class="form-control">
-                            </div>
-                        </div>
-                        
-                        <!-- Fila 4 -->
-                        <div class="servicio-item row mb-3 align-items-end">
-                            <div class="col-md-3">
-                                <label class="form-label">Servicio 4</label>
-                                <select name="servicioIds" class="form-select">
-                                    <option value="">Seleccionar...</option>
-                                    <option th:each="serv : ${servicios}" 
-                                            th:value="${serv.id}" 
-                                            th:text="${serv.nameService + ' - S/ ' + serv.precio + '/kg'}"
-                                            th:data-precio="${serv.precio}">
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Peso (kg)</label>
-                                <input type="number" step="0.1" name="pesos" class="form-control peso-input" min="0">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">Color</label>
-                                <input type="text" name="colores" class="form-control">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Observaciones</label>
-                                <input type="text" name="observaciones" class="form-control">
-                            </div>
-                        </div>
+
+                    <div class="mb-3">
+                        <label>Observaciones Generales</label>
+                        <textarea name="observacionesGenerales" class="form-control" rows="2"></textarea>
                     </div>
-                </div>
-                
-                <!-- Observaciones generales -->
-                <div class="mb-3">
-                    <label>Observaciones Generales</label>
-                    <textarea name="observacionesGenerales" class="form-control" rows="2"></textarea>
-                </div>
-                
-                <!-- Total -->
-                <div class="alert alert-info">
-                    <strong>Total del Pedido: </strong>
-                    <span id="total-pedido">S/ 0.00</span>
-                </div>
-                
-                <button type="submit" class="btn btn-primary">Guardar Pedido</button>
-                <a th:href="@{/pedidos}" class="btn btn-secondary">Cancelar</a>
-            </form>
+
+                    <div class="alert alert-info">
+                        <strong>Total del Pedido: </strong>
+                        <span id="total-pedido">S/ 0.00</span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Guardar Pedido</button>
+                    <a th:href="@{/pedidos}" class="btn btn-secondary">Cancelar</a>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
-<script th:inline="javascript">
-    var serviciosData = /*[[${servicios}]]*/ [];
-    var MAX_FILAS = 4;
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        const container = document.getElementById('servicios-container');
-        const btnAgregar = document.getElementById('btnAgregarServicio');
-        
-        function generarOpciones(select) {
-            const options = ['<option value="">Seleccionar...</option>'];
-            if (serviciosData && serviciosData.length > 0) {
-                serviciosData.forEach(serv => {
-                    options.push(`<option value="${serv.id}" data-precio="${serv.precio}">${serv.nameService} - S/ ${serv.precio}/kg</option>`);
-                });
-            }
-            select.innerHTML = options.join('');
-        }
-        
-        // Configurar todos los selects
-        container.querySelectorAll('select').forEach(select => {
-            generarOpciones(select);
-        });
-        
-        function actualizarTotal() {
-            let total = 0;
-            container.querySelectorAll('.servicio-item').forEach(item => {
-                const select = item.querySelector('select');
-                const peso = item.querySelector('.peso-input');
-                if (select && select.value && peso && peso.value) {
-                    const option = select.options[select.selectedIndex];
-                    const precio = option.getAttribute('data-precio');
-                    if (precio) {
-                        total += parseFloat(precio) * parseFloat(peso.value);
-                    }
+    <script th:inline="javascript">
+        var serviciosData = [];
+        var MAX_FILAS = 4;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const container = document.getElementById('servicios-container');
+            const btnAgregar = document.getElementById('btnAgregarServicio');
+
+            function generarOpciones(select) {
+                const options = ['<option value="">Seleccionar...</option>'];
+                if (serviciosData && serviciosData.length > 0) {
+                    serviciosData.forEach(serv => {
+                        options.push(`<option value="${serv.id}" data-precio="${serv.precio}">${serv.nameService} - S/ ${serv.precio}/kg</option>`);
+                    });
                 }
-            });
-            document.getElementById('total-pedido').textContent = 'S/ ' + total.toFixed(2);
-        }
-        
-        function agregarEventos(item) {
-            item.querySelectorAll('select, .peso-input').forEach(el => {
-                el.addEventListener('change', actualizarTotal);
-                el.addEventListener('input', actualizarTotal);
-            });
-            
-            const btnEliminar = item.querySelector('.btn-eliminar');
-            if (btnEliminar) {
-                btnEliminar.addEventListener('click', function() {
-                    const items = container.querySelectorAll('.servicio-item');
-                    if (items.length > 1) {
-                        item.remove();
-                        actualizarTotal();
-                        actualizarLabels();
-                    } else {
-                        alert('Debe haber al menos un servicio');
-                    }
-                });
+                select.innerHTML = options.join('');
             }
-        }
-        
-        function actualizarLabels() {
-            const items = container.querySelectorAll('.servicio-item');
-            items.forEach((item, index) => {
-                const label = item.querySelector('label');
-                if (label) {
-                    const text = label.textContent.replace(/\d+/, index + 1);
-                    label.textContent = text;
-                }
-            });
-        }
-        
-        container.querySelectorAll('.servicio-item').forEach(item => {
-            agregarEventos(item);
-        });
-        
-        btnAgregar.addEventListener('click', function() {
-            const itemsActuales = container.querySelectorAll('.servicio-item');
-            
-            if (itemsActuales.length >= MAX_FILAS) {
-                alert('Máximo ' + MAX_FILAS + ' servicios por pedido');
-                return;
-            }
-            
-            const lastItem = container.querySelector('.servicio-item:last-child');
-            if (!lastItem) return;
-            
-            const clone = lastItem.cloneNode(true);
-            
-            clone.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
-            clone.querySelectorAll('input').forEach(i => i.value = '');
-            
-            const select = clone.querySelector('select');
-            if (select) {
+
+            container.querySelectorAll('select').forEach(select => {
                 generarOpciones(select);
-                select.name = 'servicioIds';
-            }
-            
-            clone.querySelectorAll('input').forEach(input => {
-                if (input.classList.contains('peso-input')) {
-                    input.name = 'pesos';
-                } else if (input.name === 'colores') {
-                    input.name = 'colores';
-                } else if (input.name === 'observaciones') {
-                    input.name = 'observaciones';
-                }
             });
-            
-            const btnEliminar = clone.querySelector('.btn-eliminar');
-            if (btnEliminar) {
-                btnEliminar.style.display = 'block';
+
+            function actualizarTotal() {
+                let total = 0;
+                container.querySelectorAll('.servicio-item').forEach(item => {
+                    const select = item.querySelector('select');
+                    const peso = item.querySelector('.peso-input');
+                    if (select && select.value && peso && peso.value) {
+                        const option = select.options[select.selectedIndex];
+                        const precio = option.getAttribute('data-precio');
+                        if (precio) {
+                            total += parseFloat(precio) * parseFloat(peso.value);
+                        }
+                    }
+                });
+                document.getElementById('total-pedido').textContent = 'S/ ' + total.toFixed(2);
             }
-            
-            agregarEventos(clone);
-            container.appendChild(clone);
-            actualizarLabels();
+
+            function agregarEventos(item) {
+                item.querySelectorAll('select, .peso-input').forEach(el => {
+                    el.addEventListener('change', actualizarTotal);
+                    el.addEventListener('input', actualizarTotal);
+                });
+
+                const btnEliminar = item.querySelector('.btn-eliminar');
+                if (btnEliminar) {
+                    btnEliminar.addEventListener('click', function () {
+                        const items = container.querySelectorAll('.servicio-item');
+                        if (items.length > 1) {
+                            item.remove();
+                            actualizarTotal();
+                            actualizarLabels();
+                        } else {
+                            alert('Debe haber al menos un servicio');
+                        }
+                    });
+                }
+            }
+
+            function actualizarLabels() {
+                const items = container.querySelectorAll('.servicio-item');
+                items.forEach((item, index) => {
+                    const label = item.querySelector('label');
+                    if (label) {
+                        const text = label.textContent.replace(/\d+/, index + 1);
+                        label.textContent = text;
+                    }
+                });
+            }
+
+            container.querySelectorAll('.servicio-item').forEach(item => {
+                agregarEventos(item);
+            });
+
+            btnAgregar.addEventListener('click', function () {
+                const itemsActuales = container.querySelectorAll('.servicio-item');
+
+                if (itemsActuales.length >= MAX_FILAS) {
+                    alert('Máximo ' + MAX_FILAS + ' servicios por pedido');
+                    return;
+                }
+
+                const lastItem = container.querySelector('.servicio-item:last-child');
+                if (!lastItem) return;
+
+                const clone = lastItem.cloneNode(true);
+
+                clone.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+                clone.querySelectorAll('input').forEach(i => i.value = '');
+
+                const select = clone.querySelector('select');
+                if (select) {
+                    generarOpciones(select);
+                    select.name = 'servicioIds';
+                }
+
+                clone.querySelectorAll('input').forEach(input => {
+                    if (input.classList.contains('peso-input')) {
+                        input.name = 'pesos';
+                    } else if (input.name === 'colores') {
+                        input.name = 'colores';
+                    } else if (input.name === 'observaciones') {
+                        input.name = 'observaciones';
+                    }
+                });
+
+                const btnEliminar = clone.querySelector('.btn-eliminar');
+                if (btnEliminar) {
+                    btnEliminar.style.display = 'block';
+                }
+
+                agregarEventos(clone);
+                container.appendChild(clone);
+                actualizarLabels();
+                actualizarTotal();
+            });
+
             actualizarTotal();
         });
-        
-        actualizarTotal();
-    });
-    
-    function validarFormulario() {
-        const items = document.querySelectorAll('.servicio-item');
-        let tieneServicioValido = false;
-        
-        items.forEach(item => {
-            const select = item.querySelector('select');
-            const peso = item.querySelector('.peso-input');
-            if (select && select.value && peso && peso.value && parseFloat(peso.value) > 0) {
-                tieneServicioValido = true;
+
+        function validarFormulario() {
+            const items = document.querySelectorAll('.servicio-item');
+            let tieneServicioValido = false;
+
+            items.forEach(item => {
+                const select = item.querySelector('select');
+                const peso = item.querySelector('.peso-input');
+                if (select && select.value && peso && peso.value && parseFloat(peso.value) > 0) {
+                    tieneServicioValido = true;
+                }
+            });
+
+            if (!tieneServicioValido) {
+                alert('Debe seleccionar al menos un servicio con peso mayor a 0');
+                return false;
             }
-        });
-        
-        if (!tieneServicioValido) {
-            alert('Debe seleccionar al menos un servicio con peso mayor a 0');
-            return false;
+            return true;
         }
-        return true;
-    }
-</script>
+    </script>
 </body>
+
 </html>

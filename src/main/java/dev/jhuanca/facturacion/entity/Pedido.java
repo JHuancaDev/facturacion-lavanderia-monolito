@@ -1,4 +1,4 @@
-// src/main/java/dev/jhuanca/facturacion/entity/Pedido.java
+
 package dev.jhuanca.facturacion.entity;
 
 import dev.jhuanca.facturacion.enums.EstadoPedido;

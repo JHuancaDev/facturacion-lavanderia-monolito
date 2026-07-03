@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import dev.jhuanca.facturacion.entity.Cliente;
 import dev.jhuanca.facturacion.repository.ClienteRepository;
 
-@RestController  // ← CAMBIADO A @RestController
+@RestController
 @RequestMapping("/api/clientes")
 public class ApiClienteController {
     

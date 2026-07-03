@@ -19,7 +19,6 @@ public class DataInitializer implements CommandLineRunner {
     
     @Override
     public void run(String... args) throws Exception {
-        // Crear usuario ADMIN si no existe
         if (userRepository.findByUsername("admin").isEmpty()) {
             User admin = new User();
             admin.setUsername("admin");
@@ -32,7 +31,6 @@ public class DataInitializer implements CommandLineRunner {
             userRepository.save(admin);
         }
         
-        // Crear usuario TRABAJADOR si no existe
         if (userRepository.findByUsername("trabajador").isEmpty()) {
             User worker = new User();
             worker.setUsername("trabajador");

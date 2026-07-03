@@ -42,7 +42,7 @@ public class User {
     @Column(unique = true)
     private String email;
 
-    private String rol = "TRABAJADOR";  // ADMIN, TRABAJADOR
+    private String rol = "TRABAJADOR";
 
     private Boolean activo = true;
 

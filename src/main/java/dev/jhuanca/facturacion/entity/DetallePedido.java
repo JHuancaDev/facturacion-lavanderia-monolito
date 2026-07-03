@@ -1,4 +1,4 @@
-// src/main/java/dev/jhuanca/facturacion/entity/DetallePedido.java
+
 package dev.jhuanca.facturacion.entity;
 
 import jakarta.persistence.Entity;
@@ -31,8 +31,8 @@ public class DetallePedido {
     @JoinColumn(name = "servicio_id")
     private Servicios servicio;
     
-    private Double peso; // en kilos
-    private Double subtotal; // precio * peso
+    private Double peso;
+    private Double subtotal; 
     private String color;
     private String observaciones;
 }

@@ -32,7 +32,7 @@ public class UbicacionRopa {
     @JoinColumn(name = "cliente_dni")
     private Cliente cliente;
 
-    private String codigoUbicacion; // Ej: "A-01", "B-03"
+    private String codigoUbicacion;
     private String estante;
     private String balda;
     private LocalDateTime fechaAsignacion;

@@ -9,7 +9,7 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
     <title>LAVANDERIA | SISTEMA</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/bootstrap-custom.css}">
     <style>
         .bg-button {
             background-color: #D9D9D9;
@@ -20,6 +20,26 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
             background-color: blue;
             color: #D9D9D9;
         }
+
+        @media (max-width: 767px) {
+
+            #sidebar {
+                position: fixed;
+                top: 0;
+                left: -270px;
+                width: 260px;
+                height: 100vh;
+                z-index: 2000;
+                transition: .3s;
+                overflow-y: auto;
+                box-shadow: 0 0 15px rgba(0, 0, 0, .25);
+            }
+
+            #sidebar.show {
+                left: 0;
+            }
+
+        }
     </style>
 </head>
 
@@ -27,7 +47,17 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
     <div class="container-fluid">
         <div class="row">
             <div th:replace="~{layout/sidebar :: sidebar}"></div>
+
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-md-none py-2">
+
+                    <button class="btn btn-primary" onclick="toggleSidebar()">
+
+                        ☰ Menú
+
+                    </button>
+
+                </div>
                 <div th:if="${success}" class="alert alert-success alert-dismissible mt-3" th:text="${success}"></div>
                 <div th:if="${error}" class="alert alert-danger alert-dismissible mt-3" th:text="${error}"></div>
                 <div th:replace="~{${template}  :: content}">pedido</div>
@@ -35,6 +65,11 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/html.html to edit this temp
         </div>
     </div>
     <script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+    <script>
+        function toggleSidebar() {
+            document.getElementById("sidebar").classList.toggle("show");
+        }
+    </script>
 </body>
 
 </html>

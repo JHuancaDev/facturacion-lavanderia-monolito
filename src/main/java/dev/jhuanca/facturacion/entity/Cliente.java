@@ -27,7 +27,7 @@ public class Cliente {
     private String apellidoMaterno;
     private String telefono;
     private String direccion;
-    private String email;  // Para enviar notificaciones
+    private String email;
     
     @OneToMany(mappedBy = "cliente")
     private List<Pedido> pedidos = new ArrayList<>();
