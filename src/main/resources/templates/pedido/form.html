@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
@@ -20,28 +19,30 @@
                                 <div class="col-md-3">
                                     <label class="form-label">DNI</label>
                                     <input type="text" name="clienteDni" class="form-control"
-                                        placeholder="DNI (opcional)" id="dniInput">
+                                        placeholder="DNI (opcional)" id="dniInput" maxlength="8" minlength="8"
+                                        pattern="^$|[0-9]{8}">
                                     <small class="text-muted">Dejar vacío para cliente general</small>
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Nombres</label>
                                     <input type="text" name="clienteNombres" class="form-control" placeholder="Nombres"
-                                        id="nombresInput">
+                                        maxlength="15" id="nombresInput">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Apellido Paterno</label>
-                                    <input type="text" name="clienteApellidoPaterno" class="form-control"
+                                    <input type="text" name="clienteApellidoPaterno" class="form-control" maxlength="20"
                                         placeholder="Apellido Paterno">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Apellido Materno</label>
-                                    <input type="text" name="clienteApellidoMaterno" class="form-control"
+                                    <input type="text" name="clienteApellidoMaterno" class="form-control" maxlength="20"
                                         placeholder="Apellido Materno">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Teléfono</label>
                                     <input type="text" name="telefono" class="form-control" placeholder="Teléfono"
-                                        id="telefonoInput">
+                                        id="telefonoInput" pattern="^$|9\d{8}" maxlength="9"
+                                        title="Ingrese un celular válido de 9 dígitos">
                                     <small class="text-muted">Para notificaciones WhatsApp</small>
                                 </div>
                             </div>
@@ -53,7 +54,7 @@
                             <h5 class="mb-0">Servicios</h5>
                         </div>
                         <div class="card-body" id="servicios-container">
-                         
+
                             <div class="servicio-item row mb-3 align-items-end">
                                 <div class="col-md-3">
                                     <label class="form-label"><strong>Servicio 1</strong></label>
@@ -80,7 +81,7 @@
                                 </div>
                             </div>
 
-                            
+
                             <div class="servicio-item row mb-3 align-items-end">
                                 <div class="col-md-3">
                                     <label class="form-label"><strong>Servicio 2</strong></label>
@@ -168,9 +169,34 @@
                         <textarea name="observacionesGenerales" class="form-control" rows="2"></textarea>
                     </div>
 
-                    <div class="alert alert-info">
-                        <strong>Total del Pedido: </strong>
-                        <span id="total-pedido">S/ 0.00</span>
+                    <!-- Total del Pedido con botón Calcular - EL CÓDIGO ESTÁ DIRECTAMENTE EN EL ONCLICK -->
+                    <div class="alert alert-info d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Total del Pedido: </strong>
+                            <span id="total-pedido">S/ 0.00</span>
+                        </div>
+                        <button type="button" class="btn btn-primary" 
+                            onclick="
+                                let total = 0;
+                                const container = document.getElementById('servicios-container');
+                                if (container) {
+                                    container.querySelectorAll('.servicio-item').forEach(function(item) {
+                                        const select = item.querySelector('select');
+                                        const peso = item.querySelector('.peso-input');
+                                        if (select && select.value && peso && peso.value) {
+                                            const option = select.options[select.selectedIndex];
+                                            const precio = option.getAttribute('data-precio');
+                                            if (precio) {
+                                                total += parseFloat(precio) * parseFloat(peso.value);
+                                            }
+                                        }
+                                    });
+                                }
+                                document.getElementById('total-pedido').textContent = 'S/ ' + total.toFixed(2);
+                                alert('Total calculado: S/ ' + total.toFixed(2));
+                            ">
+                            <i class="fas fa-calculator"></i> Calcular Total
+                        </button>
                     </div>
 
                     <button type="submit" class="btn btn-primary">Guardar Pedido</button>
@@ -180,131 +206,13 @@
         </div>
     </div>
 
-    <script th:inline="javascript">
-        var serviciosData = [];
-        var MAX_FILAS = 4;
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const container = document.getElementById('servicios-container');
-            const btnAgregar = document.getElementById('btnAgregarServicio');
-
-            function generarOpciones(select) {
-                const options = ['<option value="">Seleccionar...</option>'];
-                if (serviciosData && serviciosData.length > 0) {
-                    serviciosData.forEach(serv => {
-                        options.push(`<option value="${serv.id}" data-precio="${serv.precio}">${serv.nameService} - S/ ${serv.precio}/kg</option>`);
-                    });
-                }
-                select.innerHTML = options.join('');
-            }
-
-            container.querySelectorAll('select').forEach(select => {
-                generarOpciones(select);
-            });
-
-            function actualizarTotal() {
-                let total = 0;
-                container.querySelectorAll('.servicio-item').forEach(item => {
-                    const select = item.querySelector('select');
-                    const peso = item.querySelector('.peso-input');
-                    if (select && select.value && peso && peso.value) {
-                        const option = select.options[select.selectedIndex];
-                        const precio = option.getAttribute('data-precio');
-                        if (precio) {
-                            total += parseFloat(precio) * parseFloat(peso.value);
-                        }
-                    }
-                });
-                document.getElementById('total-pedido').textContent = 'S/ ' + total.toFixed(2);
-            }
-
-            function agregarEventos(item) {
-                item.querySelectorAll('select, .peso-input').forEach(el => {
-                    el.addEventListener('change', actualizarTotal);
-                    el.addEventListener('input', actualizarTotal);
-                });
-
-                const btnEliminar = item.querySelector('.btn-eliminar');
-                if (btnEliminar) {
-                    btnEliminar.addEventListener('click', function () {
-                        const items = container.querySelectorAll('.servicio-item');
-                        if (items.length > 1) {
-                            item.remove();
-                            actualizarTotal();
-                            actualizarLabels();
-                        } else {
-                            alert('Debe haber al menos un servicio');
-                        }
-                    });
-                }
-            }
-
-            function actualizarLabels() {
-                const items = container.querySelectorAll('.servicio-item');
-                items.forEach((item, index) => {
-                    const label = item.querySelector('label');
-                    if (label) {
-                        const text = label.textContent.replace(/\d+/, index + 1);
-                        label.textContent = text;
-                    }
-                });
-            }
-
-            container.querySelectorAll('.servicio-item').forEach(item => {
-                agregarEventos(item);
-            });
-
-            btnAgregar.addEventListener('click', function () {
-                const itemsActuales = container.querySelectorAll('.servicio-item');
-
-                if (itemsActuales.length >= MAX_FILAS) {
-                    alert('Máximo ' + MAX_FILAS + ' servicios por pedido');
-                    return;
-                }
-
-                const lastItem = container.querySelector('.servicio-item:last-child');
-                if (!lastItem) return;
-
-                const clone = lastItem.cloneNode(true);
-
-                clone.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
-                clone.querySelectorAll('input').forEach(i => i.value = '');
-
-                const select = clone.querySelector('select');
-                if (select) {
-                    generarOpciones(select);
-                    select.name = 'servicioIds';
-                }
-
-                clone.querySelectorAll('input').forEach(input => {
-                    if (input.classList.contains('peso-input')) {
-                        input.name = 'pesos';
-                    } else if (input.name === 'colores') {
-                        input.name = 'colores';
-                    } else if (input.name === 'observaciones') {
-                        input.name = 'observaciones';
-                    }
-                });
-
-                const btnEliminar = clone.querySelector('.btn-eliminar');
-                if (btnEliminar) {
-                    btnEliminar.style.display = 'block';
-                }
-
-                agregarEventos(clone);
-                container.appendChild(clone);
-                actualizarLabels();
-                actualizarTotal();
-            });
-
-            actualizarTotal();
-        });
-
+    <script>
+        // Función de validación
         function validarFormulario() {
             const items = document.querySelectorAll('.servicio-item');
             let tieneServicioValido = false;
 
-            items.forEach(item => {
+            items.forEach(function(item) {
                 const select = item.querySelector('select');
                 const peso = item.querySelector('.peso-input');
                 if (select && select.value && peso && peso.value && parseFloat(peso.value) > 0) {

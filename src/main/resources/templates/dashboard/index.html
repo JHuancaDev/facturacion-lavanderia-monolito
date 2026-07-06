@@ -25,7 +25,7 @@
         </div>
         
         <div class="col-md-3 mb-3">
-            <div class="card text-white bg-info">
+            <div class="card text-white text-bg-primary">
                 <div class="card-body">
                     <h5 class="card-title">En Proceso</h5>
                     <h2 th:text="${pedidosProceso}">0</h2>
@@ -33,6 +33,15 @@
             </div>
         </div>
         
+        <div class="col-md-3 mb-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title">Entregados</h5>
+                    <h2 th:text="${pedidosEntregados}">0</h2>
+                </div>
+            </div>
+        </div>
+
         <div class="col-md-3 mb-3">
             <div class="card text-white bg-success">
                 <div class="card-body">

@@ -15,7 +15,7 @@
                         <tr>
                             <th>ID</th>
                             <th>Cliente</th>
-                            <th>Teléfono</th> <!-- Nueva columna -->
+                            <th>Teléfono</th>
                             <th>Servicios</th>
                             <th>Total</th>
                             <th>Estado</th>
@@ -26,7 +26,9 @@
                     <tbody>
                         <tr th:each="pedido : ${pedidos}">
                             <td th:text="${pedido.id}"></td>
-                            <td th:text="${pedido.cliente.nombres} + ' ' + ${pedido.cliente.apellidoPaterno}"></td>
+                            <td th:text="${(pedido.cliente.nombres + ' ' + pedido.cliente.apellidoPaterno).length() > 20 ?
+              (pedido.cliente.nombres + ' ' + pedido.cliente.apellidoPaterno).substring(0,20) :
+              (pedido.cliente.nombres + ' ' + pedido.cliente.apellidoPaterno)}"></td>
                             <td th:text="${pedido.cliente.telefono}"></td> <!-- Mostrar teléfono -->
                             <td>
                                 <span th:each="detalle, stat : ${pedido.detalles}">

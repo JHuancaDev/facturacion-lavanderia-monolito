@@ -19,6 +19,7 @@ public class DashboardController {
         model.addAttribute("pedidosRegistrados", pedidoRepository.findByEstado(EstadoPedido.REGISTRADO).size());
         model.addAttribute("pedidosProceso", pedidoRepository.findByEstado(EstadoPedido.EN_PROCESO).size());
         model.addAttribute("pedidosFinalizados", pedidoRepository.findByEstado(EstadoPedido.FINALIZADO).size());
+        model.addAttribute("pedidosEntregados", pedidoRepository.findByEstado(EstadoPedido.ENTREGADO).size());
         model.addAttribute("template", "dashboard/index");
         return "layout/base";
     }

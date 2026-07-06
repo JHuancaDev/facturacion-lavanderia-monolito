@@ -359,13 +359,13 @@ public class PedidoController {
                 response.put("mensaje", "Un pedido finalizado solo puede pasar a ENTREGADO.");
                 return ResponseEntity.badRequest().body(response);
             }
+            
 
             pedido.setEstado(estado);
 
             if (estado == EstadoPedido.FINALIZADO) {
                 pedido.setFechaEntrega(LocalDateTime.now());
                 pedidoRepository.save(pedido);
-                whatsAppService.enviarNotificacionPedidoListo(pedido);
             } else {
                 pedidoRepository.save(pedido);
             }

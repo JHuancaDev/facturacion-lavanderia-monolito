@@ -8,7 +8,7 @@
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4>Detalle del Pedido #<span th:text="${pedido.id}"></span></h4>
                 <div>
-                    <a th:if="${pedido.estado == 'FINALIZADO' and pedido.boleta == null}"
+                    <a th:if="${pedido.estado == 'EN_PROCESO' and pedido.boleta == null}"
                         th:href="@{/pedidos/{id}/emitir-boleta(id=${pedido.id})}" class="btn btn-success"
                         onclick="return confirm('¿Estás seguro de emitir la boleta para este pedido?')">
                         Emitir Boleta
@@ -16,13 +16,13 @@
                     <span th:if="${pedido.boleta != null}" class="badge bg-success" style="font-size: 1rem;">
                         Boleta: <span th:text="${pedido.boleta.numeroBoleta}"></span>
                     </span>
-                    <span th:if="${pedido.estado != 'FINALIZADO'}" class="badge bg-warning">
+                    <span th:if="${pedido.estado != 'EN_PROCESO'}" class="badge bg-warning">
                         Finalizar pedido para emitir boleta
                     </span>
                 </div>
             </div>
             <div>
-               <a th:if="${pedido.estado.name() == 'FINALIZADO' and pedido.boleta == null}"
+               <a th:if="${pedido.estado.name() == 'EN_PROCESO' and pedido.boleta == null}"
                     th:href="@{/pedidos/{id}/emitir-boleta(id=${pedido.id})}" class="btn btn-success"
                     onclick="return confirm('¿Estás seguro de emitir la boleta para este pedido?')">
                     Emitir Boleta
