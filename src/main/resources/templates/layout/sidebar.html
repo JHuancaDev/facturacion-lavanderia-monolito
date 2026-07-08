@@ -16,7 +16,7 @@
             <ul class="nav flex-column text-center">
 
 
-                <a class="bg-button mb-2 nav-link rounded-2 fw-bold  d-flex justify-content-evenly"
+                <a class="bg-button  mb-2 nav-link rounded-1 fw-bold  d-flex justify-content-evenly"
                     th:href="@{/dashboard}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24">
                         <title xmlns="">sale-tag-01</title>
@@ -30,7 +30,7 @@
                     </svg>
                     GENERAL
                 </a>
-                <a class="bg-button mb-2 nav-link rounded-2  fw-bold  d-flex justify-content-evenly"
+                <a class="bg-button mb-2 nav-link rounded-1  fw-bold  d-flex justify-content-evenly"
                     th:href="@{/servicios}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24">
                         <title xmlns="">laundry-outline-rounded</title>
@@ -40,7 +40,7 @@
                     SERVICIOS
                 </a>
 
-                <a class="bg-button mb-2 nav-link rounded-2  fw-bold  d-flex justify-content-evenly"
+                <a class="bg-button mb-2 nav-link rounded-1  fw-bold  d-flex justify-content-evenly"
                     th:href="@{/pedidos}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
                         <title xmlns="">laundry-outline-rounded</title>
@@ -49,7 +49,7 @@
                     </svg>
                     PEDIDOS
                 </a>
-                <a class="bg-button mb-2 nav-link rounded-2  fw-bold  d-flex justify-content-evenly"
+                <a class="bg-button mb-2 nav-link rounded-1  fw-bold  d-flex justify-content-evenly"
                     th:href="@{/pedidos/nuevo}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24">
                         <title xmlns="">sale-tag-01</title>
@@ -63,8 +63,7 @@
                     </svg>
                     NUEVO PEDIDO
                 </a>
-                <!-- Agrega este ítem en el menú -->
-                <a class="bg-button mb-2 nav-link rounded-2 fw-bold d-flex justify-content-evenly"
+                <a class="bg-button mb-2 nav-link rounded-1 fw-bold d-flex justify-content-evenly"
                     th:href="@{/boletas}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24">
                         <path fill="currentColor"
@@ -72,7 +71,7 @@
                     </svg>
                     BOLETAS
                 </a>
-                <a class="bg-button mb-2 nav-link rounded-2 fw-bold d-flex justify-content-evenly"
+                <a class="bg-button mb-2 nav-link rounded-1 fw-bold d-flex justify-content-evenly"
                     th:href="@{/usuarios}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24">
                         <path fill="currentColor"
@@ -89,7 +88,7 @@
 
                 <li class="nav-item">
                     <form th:action="@{/logout}" method="post">
-                        <button type="submit" class="btn btn-outline-danger w-100">
+                        <button type="submit" class="btn btn-danger w-100 text-light fw-bold">
                             Cerrar Sesión
                         </button>
                     </form>

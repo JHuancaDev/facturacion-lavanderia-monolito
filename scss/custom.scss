@@ -2,11 +2,12 @@
 $primary: #152ECA;
 $success: #00c853;
 $danger: #ff3b30;
-
+$btn-border-radius: .5rem;
+$input-border-radius: 1rem border-radius;
 
 $font-family-sans-serif: "Poppins", sans-serif;
 
-$border-radius: 1rem;
+$border-radius: 0;
 
 
 @import "../node_modules/bootstrap/scss/bootstrap";

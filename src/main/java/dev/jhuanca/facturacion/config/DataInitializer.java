@@ -21,7 +21,7 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         if (userRepository.findByUsername("admin").isEmpty()) {
             User admin = new User();
-            admin.setUsername("REBOTT");
+            admin.setUsername("admin");
             admin.setPassword(passwordEncoder.encode("developer"));
             admin.setNombre("Administrador");
             admin.setEmail("javier9hc@gmail.com");
