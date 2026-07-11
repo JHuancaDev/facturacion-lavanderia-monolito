@@ -474,7 +474,6 @@ public class SunatService {
                 return serieFactura + "-" + numeroFormateado;
         }
 
-        // Generar XML de Factura
         public String generarXmlFactura(Pedido pedido, String numeroFactura) throws Exception {
                 String[] partes = numeroFactura.split("-");
                 String serie = partes[0];
@@ -490,17 +489,26 @@ public class SunatService {
 
                 // Datos del cliente
                 if (pedido.getCliente() != null) {
-                        String dni = pedido.getCliente().getDni();
-                        if (dni == null || dni.isEmpty() || dni.equals("99999999")) {
-                                dni = "99999999";
+                        String documento = pedido.getCliente().getDni();
+                        if (documento == null || documento.isEmpty()) {
+                                documento = "99999999"; // DNI genérico
                         }
+
+                        // ✅ DETECTAR TIPO DE DOCUMENTO
+                        String tipoDocumento;
+                        if (documento.length() == 11) {
+                                tipoDocumento = Catalog6.RUC.getCode(); // "6" - RUC
+                        } else {
+                                tipoDocumento = Catalog6.DNI.getCode(); // "1" - DNI
+                        }
+
                         builder.cliente(io.github.project.openubl.xbuilder.content.models.common.Cliente.builder()
                                         .nombre(pedido.getCliente().getNombres() + " " +
                                                         (pedido.getCliente().getApellidoPaterno() != null
                                                                         ? pedido.getCliente().getApellidoPaterno()
                                                                         : ""))
-                                        .numeroDocumentoIdentidad(dni)
-                                        .tipoDocumentoIdentidad(Catalog6.DNI.getCode())
+                                        .numeroDocumentoIdentidad(documento)
+                                        .tipoDocumentoIdentidad(tipoDocumento) // ✅ TIPO CORRECTO
                                         .build());
                 }
 
