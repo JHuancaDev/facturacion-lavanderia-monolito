@@ -8,57 +8,110 @@
                 <h4>Nuevo Pedido</h4>
             </div>
             <div class="card-body">
+                <!-- Mensajes de alerta -->
+                <div id="tipoClienteAlert" class="alert alert-info alert-dismissible fade show" role="alert" style="display: none;">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="tipoClienteMensaje">Cliente identificado con DNI</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
                 <form th:action="@{/pedidos/guardar}" method="post" id="pedidoForm"
                     onsubmit="return validarFormulario()">
+                    
                     <div class="card mb-3">
                         <div class="card-header bg-light">
                             <h5 class="mb-0">Datos del Cliente</h5>
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-3">
-                                    <label class="form-label">DNI</label>
-                                    <input type="text" name="clienteDni" class="form-control"
-                                        placeholder="DNI (opcional)" id="dniInput" maxlength="8" minlength="8"
-                                        pattern="^$|[0-9]{8}">
-                                    <small class="text-muted">Dejar vacío para cliente general</small>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Nombres</label>
-                                    <input type="text" name="clienteNombres" class="form-control" placeholder="Nombres"
-                                        maxlength="15" id="nombresInput">
-                                </div>
+                                <!-- Tipo de Documento -->
                                 <div class="col-md-2">
+                                    <label class="form-label">Tipo Documento</label>
+                                    <select id="tipoDocumento" class="form-select" onchange="cambiarTipoDocumento()">
+                                        <option value="DNI">DNI</option>
+                                        <option value="RUC">RUC</option>
+                                    </select>
+                                    <small class="text-muted">Selecciona el tipo</small>
+                                </div>
+                                
+                                <!-- Número de Documento -->
+                                <div class="col-md-3">
+                                    <label class="form-label">N° Documento</label>
+                                    <input type="text" 
+                                           name="clienteDni" 
+                                           class="form-control" 
+                                           placeholder="DNI o RUC" 
+                                           id="documentoInput"
+                                           maxlength="11"
+                                           oninput="validarDocumento(this)"
+                                           onblur="buscarCliente(this)">
+                                    <small class="text-muted" id="documentoHint">Ingresa 8 dígitos para DNI o 11 para RUC</small>
+                                    <div id="documentoFeedback" class="invalid-feedback"></div>
+                                </div>
+                                
+                                <!-- Nombres -->
+                                <div class="col-md-3">
+                                    <label class="form-label">Nombres / Razón Social</label>
+                                    <input type="text" name="clienteNombres" class="form-control" 
+                                           placeholder="Nombres o Razón Social" id="nombresInput">
+                                    <small class="text-muted" id="nombreHint">Para RUC ingresa la Razón Social</small>
+                                </div>
+                                
+                                <!-- Apellido Paterno (solo DNI) -->
+                                <div class="col-md-2" id="apellidoPaternoGroup">
                                     <label class="form-label">Apellido Paterno</label>
-                                    <input type="text" name="clienteApellidoPaterno" class="form-control" maxlength="20"
-                                        placeholder="Apellido Paterno">
+                                    <input type="text" name="clienteApellidoPaterno" class="form-control" 
+                                           placeholder="Apellido Paterno" id="apellidoPaternoInput">
                                 </div>
-                                <div class="col-md-2">
+                                
+                                <!-- Apellido Materno (solo DNI) -->
+                                <div class="col-md-2" id="apellidoMaternoGroup">
                                     <label class="form-label">Apellido Materno</label>
-                                    <input type="text" name="clienteApellidoMaterno" class="form-control" maxlength="20"
-                                        placeholder="Apellido Materno">
+                                    <input type="text" name="clienteApellidoMaterno" class="form-control" 
+                                           placeholder="Apellido Materno" id="apellidoMaternoInput">
                                 </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">Teléfono</label>
-                                    <input type="text" name="telefono" class="form-control" placeholder="Teléfono"
-                                        id="telefonoInput" pattern="^$|9\d{8}" maxlength="9"
-                                        title="Ingrese un celular válido de 9 dígitos">
+                            </div>
+                            
+                            <div class="row mt-3">
+                                <!-- Teléfono -->
+                                <div class="col-md-3">
+                                    <label class="form-label">Teléfono / Celular</label>
+                                    <input type="text" name="telefono" class="form-control" 
+                                           placeholder="9 dígitos" id="telefonoInput"
+                                           pattern="^$|9\d{8}" maxlength="9">
                                     <small class="text-muted">Para notificaciones WhatsApp</small>
+                                </div>
+                                
+                                <!-- Email -->
+                                <div class="col-md-4">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" name="email" class="form-control" 
+                                           placeholder="correo@ejemplo.com" id="emailInput">
+                                </div>
+                            </div>
+                            
+                            <!-- Botón para limpiar campos -->
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="limpiarCliente()">
+                                        <i class="fas fa-eraser"></i> Limpiar datos del cliente
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Servicios - Se mantiene igual -->
                     <div class="card mb-3">
                         <div class="card-header bg-light">
                             <h5 class="mb-0">Servicios</h5>
                         </div>
                         <div class="card-body" id="servicios-container">
-
+                            <!-- Servicio 1 -->
                             <div class="servicio-item row mb-3 align-items-end">
                                 <div class="col-md-3">
                                     <label class="form-label"><strong>Servicio 1</strong></label>
-                                    <select name="servicioIds" class="form-select">
+                                    <select name="servicioIds" class="form-select" required>
                                         <option value="">Seleccionar...</option>
                                         <option th:each="serv : ${servicios}" th:value="${serv.id}"
                                             th:text="${serv.nameService + ' - S/ ' + serv.precio + '/kg'}"
@@ -69,7 +122,7 @@
                                 <div class="col-md-2">
                                     <label class="form-label">Peso (kg)</label>
                                     <input required type="number" step="0.1" name="pesos"
-                                        class="form-control peso-input" min="0">
+                                        class="form-control peso-input" min="0.1">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Color</label>
@@ -81,7 +134,7 @@
                                 </div>
                             </div>
 
-
+                            <!-- Servicio 2 al 4 - se mantienen igual -->
                             <div class="servicio-item row mb-3 align-items-end">
                                 <div class="col-md-3">
                                     <label class="form-label"><strong>Servicio 2</strong></label>
@@ -95,8 +148,7 @@
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Peso (kg)</label>
-                                    <input type="number" step="0.1" name="pesos" class="form-control peso-input"
-                                        min="0">
+                                    <input type="number" step="0.1" name="pesos" class="form-control peso-input" min="0.1">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Color</label>
@@ -108,7 +160,6 @@
                                 </div>
                             </div>
 
-                            <!-- Fila 3 -->
                             <div class="servicio-item row mb-3 align-items-end">
                                 <div class="col-md-3">
                                     <label class="form-label"><strong>Servicio 3</strong></label>
@@ -122,8 +173,7 @@
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Peso (kg)</label>
-                                    <input type="number" step="0.1" name="pesos" class="form-control peso-input"
-                                        min="0">
+                                    <input type="number" step="0.1" name="pesos" class="form-control peso-input" min="0.1">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Color</label>
@@ -135,7 +185,6 @@
                                 </div>
                             </div>
 
-                            <!-- Fila 4 -->
                             <div class="servicio-item row mb-3 align-items-end">
                                 <div class="col-md-3">
                                     <label class="form-label"><strong>Servicio 4</strong></label>
@@ -149,8 +198,7 @@
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Peso (kg)</label>
-                                    <input type="number" step="0.1" name="pesos" class="form-control peso-input"
-                                        min="0">
+                                    <input type="number" step="0.1" name="pesos" class="form-control peso-input" min="0.1">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Color</label>
@@ -169,32 +217,13 @@
                         <textarea name="observacionesGenerales" class="form-control" rows="2"></textarea>
                     </div>
 
-                    <!-- Total del Pedido con botón Calcular - EL CÓDIGO ESTÁ DIRECTAMENTE EN EL ONCLICK -->
+                    <!-- Total del Pedido -->
                     <div class="alert alert-info d-flex justify-content-between align-items-center">
                         <div>
                             <strong>Total del Pedido: </strong>
                             <span id="total-pedido">S/ 0.00</span>
                         </div>
-                        <button type="button" class="btn btn-primary" 
-                            onclick="
-                                let total = 0;
-                                const container = document.getElementById('servicios-container');
-                                if (container) {
-                                    container.querySelectorAll('.servicio-item').forEach(function(item) {
-                                        const select = item.querySelector('select');
-                                        const peso = item.querySelector('.peso-input');
-                                        if (select && select.value && peso && peso.value) {
-                                            const option = select.options[select.selectedIndex];
-                                            const precio = option.getAttribute('data-precio');
-                                            if (precio) {
-                                                total += parseFloat(precio) * parseFloat(peso.value);
-                                            }
-                                        }
-                                    });
-                                }
-                                document.getElementById('total-pedido').textContent = 'S/ ' + total.toFixed(2);
-                                alert('Total calculado: S/ ' + total.toFixed(2));
-                            ">
+                        <button type="button" class="btn btn-primary" onclick="calcularTotal()">
                             <i class="fas fa-calculator"></i> Calcular Total
                         </button>
                     </div>
@@ -207,8 +236,218 @@
     </div>
 
     <script>
-        // Función de validación
+        // ========== CONFIGURACIÓN ==========
+        const DNI_LENGTH = 8;
+        const RUC_LENGTH = 11;
+
+        // ========== FUNCIONES PRINCIPALES ==========
+        
+        function cambiarTipoDocumento() {
+            const tipo = document.getElementById('tipoDocumento').value;
+            const documentoInput = document.getElementById('documentoInput');
+            const hint = document.getElementById('documentoHint');
+            const nombreInput = document.getElementById('nombresInput');
+            const nombreHint = document.getElementById('nombreHint');
+            const apellidoPaternoGroup = document.getElementById('apellidoPaternoGroup');
+            const apellidoMaternoGroup = document.getElementById('apellidoMaternoGroup');
+            
+            // Limpiar campos
+            documentoInput.value = '';
+            nombreInput.value = '';
+            document.getElementById('apellidoPaternoInput').value = '';
+            document.getElementById('apellidoMaternoInput').value = '';
+            
+            if (tipo === 'DNI') {
+                documentoInput.maxLength = DNI_LENGTH;
+                documentoInput.placeholder = 'DNI (8 dígitos)';
+                hint.textContent = 'Ingresa 8 dígitos numéricos';
+                nombreInput.placeholder = 'Nombres';
+                nombreHint.textContent = 'Para DNI ingresa los nombres';
+                apellidoPaternoGroup.style.display = 'block';
+                apellidoMaternoGroup.style.display = 'block';
+                documentoInput.pattern = '\\d{8}';
+            } else { // RUC
+                documentoInput.maxLength = RUC_LENGTH;
+                documentoInput.placeholder = 'RUC (11 dígitos)';
+                hint.textContent = 'Ingresa 11 dígitos numéricos';
+                nombreInput.placeholder = 'Razón Social';
+                nombreHint.textContent = 'Para RUC ingresa la Razón Social';
+                apellidoPaternoGroup.style.display = 'none';
+                apellidoMaternoGroup.style.display = 'none';
+                documentoInput.pattern = '\\d{11}';
+            }
+            
+            ocultarAlerta();
+        }
+
+        function validarDocumento(input) {
+            const tipo = document.getElementById('tipoDocumento').value;
+            const valor = input.value.replace(/\D/g, '');
+            input.value = valor;
+            
+            const feedback = document.getElementById('documentoFeedback');
+            const hint = document.getElementById('documentoHint');
+            
+            let esValido = false;
+            let mensaje = '';
+            
+            if (tipo === 'DNI') {
+                esValido = valor.length === DNI_LENGTH || valor.length === 0;
+                mensaje = valor.length === DNI_LENGTH ? '✅ DNI válido' : 'Ingresa 8 dígitos';
+                if (valor.length > 0 && valor.length < DNI_LENGTH) {
+                    mensaje = '⚠️ Faltan ' + (DNI_LENGTH - valor.length) + ' dígitos';
+                }
+            } else {
+                esValido = valor.length === RUC_LENGTH || valor.length === 0;
+                mensaje = valor.length === RUC_LENGTH ? '✅ RUC válido' : 'Ingresa 11 dígitos';
+                if (valor.length > 0 && valor.length < RUC_LENGTH) {
+                    mensaje = '⚠️ Faltan ' + (RUC_LENGTH - valor.length) + ' dígitos';
+                }
+            }
+            
+            hint.textContent = mensaje;
+            
+            if (valor.length > 0) {
+                input.classList.toggle('is-valid', esValido);
+                input.classList.toggle('is-invalid', !esValido);
+            } else {
+                input.classList.remove('is-valid', 'is-invalid');
+            }
+        }
+
+        function buscarCliente(input) {
+            const tipo = document.getElementById('tipoDocumento').value;
+            const valor = input.value.trim();
+            
+            if (!valor) {
+                ocultarAlerta();
+                return;
+            }
+            
+            // Validar longitud
+            const longitudCorrecta = tipo === 'DNI' ? valor.length === DNI_LENGTH : valor.length === RUC_LENGTH;
+            if (!longitudCorrecta) return;
+            
+            // Buscar cliente en el backend
+            fetch('/api/clientes/' + valor)
+                .then(response => {
+                    if (response.ok) return response.json();
+                    throw new Error('Cliente no encontrado');
+                })
+                .then(cliente => {
+                    // Autocompletar datos
+                    document.getElementById('nombresInput').value = cliente.nombres || '';
+                    document.getElementById('apellidoPaternoInput').value = cliente.apellidoPaterno || '';
+                    document.getElementById('apellidoMaternoInput').value = cliente.apellidoMaterno || '';
+                    document.getElementById('telefonoInput').value = cliente.telefono || '';
+                    document.getElementById('emailInput').value = cliente.email || '';
+                    
+                    mostrarAlerta(
+                        'success',
+                        '✅ Cliente encontrado: ' + 
+                        (tipo === 'DNI' ? cliente.nombres + ' ' + cliente.apellidoPaterno : cliente.nombres)
+                    );
+                })
+                .catch(error => {
+                    mostrarAlerta(
+                        'warning',
+                        '⚠️ Cliente no encontrado. Completa los datos manualmente.',
+                        true
+                    );
+                });
+        }
+
+        function limpiarCliente() {
+            document.getElementById('documentoInput').value = '';
+            document.getElementById('nombresInput').value = '';
+            document.getElementById('apellidoPaternoInput').value = '';
+            document.getElementById('apellidoMaternoInput').value = '';
+            document.getElementById('telefonoInput').value = '';
+            document.getElementById('emailInput').value = '';
+            
+            document.getElementById('documentoInput').classList.remove('is-valid', 'is-invalid');
+            ocultarAlerta();
+            
+            const hint = document.getElementById('documentoHint');
+            const tipo = document.getElementById('tipoDocumento').value;
+            hint.textContent = tipo === 'DNI' ? 'Ingresa 8 dígitos para DNI' : 'Ingresa 11 dígitos para RUC';
+        }
+
+        // ========== ALERTAS ==========
+        function mostrarAlerta(tipo, mensaje, autoHide = false) {
+            const alertDiv = document.getElementById('tipoClienteAlert');
+            const mensajeSpan = document.getElementById('tipoClienteMensaje');
+            
+            alertDiv.className = 'alert alert-' + tipo + ' alert-dismissible fade show';
+            mensajeSpan.textContent = mensaje;
+            alertDiv.style.display = 'block';
+            
+            if (autoHide) {
+                setTimeout(() => {
+                    ocultarAlerta();
+                }, 5000);
+            }
+        }
+
+        function ocultarAlerta() {
+            const alertDiv = document.getElementById('tipoClienteAlert');
+            alertDiv.style.display = 'none';
+        }
+
+        // ========== CÁLCULO TOTAL ==========
+        function calcularTotal() {
+            let total = 0;
+            const container = document.getElementById('servicios-container');
+            
+            if (container) {
+                container.querySelectorAll('.servicio-item').forEach(function(item) {
+                    const select = item.querySelector('select');
+                    const peso = item.querySelector('.peso-input');
+                    if (select && select.value && peso && peso.value) {
+                        const option = select.options[select.selectedIndex];
+                        const precio = option.getAttribute('data-precio');
+                        if (precio) {
+                            total += parseFloat(precio) * parseFloat(peso.value);
+                        }
+                    }
+                });
+            }
+            
+            document.getElementById('total-pedido').textContent = 'S/ ' + total.toFixed(2);
+            
+            // Mostrar mensaje más amigable
+            if (total > 0) {
+                mostrarAlerta('info', '💰 Total calculado: S/ ' + total.toFixed(2), true);
+            } else {
+                mostrarAlerta('warning', '⚠️ No hay servicios seleccionados o pesos válidos', true);
+            }
+        }
+
+        // ========== VALIDACIÓN FINAL ==========
         function validarFormulario() {
+            // Validar documento
+            const documentoInput = document.getElementById('documentoInput');
+            const tipo = document.getElementById('tipoDocumento').value;
+            const valor = documentoInput.value.trim();
+            
+            if (valor) {
+                const longitudCorrecta = tipo === 'DNI' ? valor.length === DNI_LENGTH : valor.length === RUC_LENGTH;
+                if (!longitudCorrecta) {
+                    alert('El ' + tipo + ' debe tener ' + (tipo === 'DNI' ? DNI_LENGTH : RUC_LENGTH) + ' dígitos');
+                    documentoInput.focus();
+                    return false;
+                }
+            }
+            
+            // Validar que al menos haya un nombre/razón social
+            const nombre = document.getElementById('nombresInput').value.trim();
+            if (!nombre) {
+                alert('Debes ingresar el nombre o razón social del cliente');
+                document.getElementById('nombresInput').focus();
+                return false;
+            }
+            
+            // Validar servicios
             const items = document.querySelectorAll('.servicio-item');
             let tieneServicioValido = false;
 
@@ -224,9 +463,53 @@
                 alert('Debe seleccionar al menos un servicio con peso mayor a 0');
                 return false;
             }
+            
             return true;
         }
-    </script>
-</body>
 
+        // ========== INICIALIZAR ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configurar inicial
+            cambiarTipoDocumento();
+            
+            // Agregar atajo para buscar con Enter
+            document.getElementById('documentoInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    buscarCliente(this);
+                }
+            });
+            
+            // Previsualizar cambios en el tipo de documento
+            document.getElementById('tipoDocumento').addEventListener('change', function() {
+                ocultarAlerta();
+            });
+            
+            // Auto-calcular total cuando cambian los servicios
+            document.querySelectorAll('.servicio-item select, .servicio-item .peso-input').forEach(function(element) {
+                element.addEventListener('change', calcularTotal);
+                element.addEventListener('input', calcularTotal);
+            });
+        });
+    </script>
+
+    <style>
+        .servicio-item {
+            transition: all 0.3s ease;
+        }
+        .servicio-item:hover {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 5px 0;
+        }
+        #tipoClienteAlert {
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+        }
+        .alert-info .btn-close {
+            filter: invert(1);
+        }
+    </style>
+</body>
 </html>

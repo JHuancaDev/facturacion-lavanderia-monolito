@@ -1,127 +1,379 @@
-
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
 <body>
     <div th:fragment="content">
         <div class="card">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h4>Detalle del Pedido #<span th:text="${pedido.id}"></span></h4>
-                <div>
-                    <a th:if="${pedido.estado == 'EN_PROCESO' and pedido.boleta == null}"
-                        th:href="@{/pedidos/{id}/emitir-boleta(id=${pedido.id})}" class="btn btn-success"
-                        onclick="return confirm('¿Estás seguro de emitir la boleta para este pedido?')">
-                        Emitir Boleta
-                    </a>
-                    <span th:if="${pedido.boleta != null}" class="badge bg-success" style="font-size: 1rem;">
-                        Boleta: <span th:text="${pedido.boleta.numeroBoleta}"></span>
-                    </span>
-                    <span th:if="${pedido.estado != 'EN_PROCESO'}" class="badge bg-warning">
-                        Finalizar pedido para emitir boleta
-                    </span>
-                </div>
-            </div>
-            <div>
-               <a th:if="${pedido.estado.name() == 'EN_PROCESO' and pedido.boleta == null}"
-                    th:href="@{/pedidos/{id}/emitir-boleta(id=${pedido.id})}" class="btn btn-success"
-                    onclick="return confirm('¿Estás seguro de emitir la boleta para este pedido?')">
-                    Emitir Boleta
-                </a>
-
-                <span th:if="${pedido.boleta != null}" class="badge bg-success" style="font-size: 1rem;">
-                    Boleta: <span th:text="${pedido.boleta.numeroBoleta}"></span>
-                </span>
-
-
-                <span th:if="${pedido.boleta != null}" class="badge bg-info" style="font-size: 1rem;">
-                    Boleta emitida
-                </span>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    <strong>Cliente:</strong>
-                    <span th:text="${pedido.cliente.nombres} + ' ' + ${pedido.cliente.apellidoPaterno}"></span>
-                </div>
-                <div class="col-md-3">
-                    <strong>DNI:</strong>
-                    <span th:text="${pedido.cliente.dni}"></span>
-                </div>
-                <div class="col-md-3">
-                    <strong>Teléfono:</strong>
-                    <span th:text="${pedido.cliente.telefono}"></span>
-                </div>
-                <div class="col-md-2">
-                    <strong>Estado:</strong>
-                    <span class="badge" th:text="${pedido.estado}" th:classappend="${pedido.estado == 'REGISTRADO' ? 'bg-warning' : 
-                                         (pedido.estado == 'EN_PROCESO' ? 'bg-info' : 
-                                         (pedido.estado == 'FINALIZADO' ? 'bg-success' : 'bg-secondary'))}">
-                    </span>
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <h4 class="mb-0">
+                        <i class="fas fa-receipt"></i> Pedido #<span th:text="${pedido.id}"></span>
+                    </h4>
+                    <div>
+                        <a th:href="@{/pedidos}" class="btn btn-light btn-sm">
+                            <i class="fas fa-arrow-left"></i> Volver
+                        </a>
+                    </div>
                 </div>
             </div>
 
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Servicio</th>
-                        <th>Peso</th>
-                        <th>Color</th>
-                        <th>Precio/kg</th>
-                        <th>Subtotal</th>
-                        <th>Observaciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="detalle, stat : ${pedido.detalles}">
-                        <td th:text="${stat.index + 1}"></td>
-                        <td th:text="${detalle.servicio.nameService}"></td>
-                        <td th:text="${detalle.peso} + ' kg'"></td>
-                        <td th:text="${detalle.color}"></td>
-                        <td th:text="'S/ ' + ${detalle.servicio.precio}"></td>
-                        <td th:text="'S/ ' + ${detalle.subtotal}"></td>
-                        <td th:text="${detalle.observaciones}"></td>
-                    </tr>
-                </tbody>
-                <tfoot>
-                    <tr class="table-primary">
-                        <th colspan="5" class="text-end">TOTAL:</th>
-                        <th colspan="2" th:text="'S/ ' + ${pedido.montoTotal}"></th>
-                    </tr>
-                    <tr th:if="${pedido.boleta != null}" class="table-success">
-                        <td colspan="5" class="text-end"><strong>Boleta:</strong></td>
-                        <td colspan="2" th:text="${pedido.boleta.numeroBoleta}"></td>
-                    </tr>
-                </tfoot>
-            </table>
+            <div class="card-body">
+                <!-- ====== INFORMACIÓN DEL CLIENTE ====== -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card bg-light">
+                            <div class="card-body py-2">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <small class="text-muted">Cliente</small>
+                                        <div>
+                                            <strong
+                                                th:text="${pedido.cliente.nombres} + ' ' + ${pedido.cliente.apellidoPaterno}"></strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">Documento</small>
+                                        <div>
+                                            <span class="badge bg-secondary"
+                                                th:text="${pedido.cliente.dni.length() == 11 ? 'RUC' : 'DNI'}"></span>
+                                            <strong th:text="${pedido.cliente.dni}"></strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">Teléfono</small>
+                                        <div>
+                                            <i class="fas fa-phone"></i>
+                                            <span th:text="${pedido.cliente.telefono}"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <small class="text-muted">Estado</small>
+                                        <div>
+                                            <span class="badge"
+                                                th:class="${pedido.estado == 'REGISTRADO' ? 'bg-warning text-dark' : 
+                                                            (pedido.estado == 'EN_PROCESO' ? 'bg-info' : 
+                                                            (pedido.estado == 'FINALIZADO' ? 'bg-success' : 'bg-secondary'))}"
+                                                th:text="${pedido.estado}">
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-          
-            <div class="mt-3">
-                <a th:href="@{/pedidos}" class="btn btn-secondary">Volver</a>
+                <!-- ====== SECCIÓN DE DOCUMENTOS ELECTRÓNICOS ====== -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header bg-secondary text-white">
+                                <i class="fas fa-file-invoice"></i> Documentos Electrónicos
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <!-- BOLETA -->
+                                    <div class="col-md-6">
+                                        <div class="card h-100">
+                                            <div class="card-body text-center">
+                                                <h5>
+                                                    <i class="fas fa-receipt"></i> Boleta
+                                                </h5>
 
-                <a th:href="@{/pedidos/asignar-ubicacion/__${pedido.id}__}" th:if="${pedido.ubicacion == null}"
-                    class="btn btn-warning">Asignar Ubicación</a>
+                                                <!-- Sin Boleta -->
+                                                <div th:if="${pedido.boleta == null}">
 
-                
-                <a th:if="${pedido.boleta != null}" th:href="@{/pedidos/{id}/descargar-pdf(id=${pedido.id})}"
-                    class="btn btn-danger">
-                    Descargar PDF
-                </a>
+                                                    <a class="btn btn-success" th:if="${pedido.estado.name() == 'REGISTRADO'
+            or pedido.estado.name() == 'EN_PROCESO'}" th:href="@{/pedidos/{id}/emitir-boleta(id=${pedido.id})}">
 
-                <a th:if="${pedido.boleta != null}" th:href="@{/pedidos/{id}/descargar-xml(id=${pedido.id})}"
-                    class="btn btn-warning">
-                    Descargar XML
-                </a>
+                                                        <i class="fas fa-plus"></i>
+                                                        Emitir Boleta
+                                                    </a>
 
-                <a th:if="${pedido.boleta != null}" th:href="@{/pedidos/{id}/descargar-boleta(id=${pedido.id})}"
-                    class="btn btn-info">
-                    Descargar TXT
-                </a>
+                                                </div>
+
+                                                <!-- Con Boleta -->
+                                                <div th:if="${pedido.boleta != null}">
+                                                    <div class="mb-2">
+                                                        <span class="badge bg-success" style="font-size: 1.1rem;">
+                                                            <i class="fas fa-check-circle"></i>
+                                                            <span th:text="${pedido.boleta.numeroBoleta}"></span>
+                                                        </span>
+                                                        <span th:if="${pedido.boleta.anulada}"
+                                                            class="badge bg-danger ms-2">
+                                                            <i class="fas fa-ban"></i> ANULADA
+                                                        </span>
+                                                    </div>
+
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <a th:href="@{/pedidos/{id}/descargar-pdf(id=${pedido.id})}"
+                                                            class="btn btn-danger" title="Descargar PDF">
+                                                            <i class="fas fa-file-pdf"></i> PDF
+                                                        </a>
+                                                        <a th:href="@{/pedidos/{id}/descargar-xml(id=${pedido.id})}"
+                                                            class="btn btn-warning" title="Descargar XML">
+                                                            <i class="fas fa-file-code"></i> XML
+                                                        </a>
+                                                        <a th:href="@{/pedidos/{id}/descargar-boleta(id=${pedido.id})}"
+                                                            class="btn btn-info" title="Descargar TXT">
+                                                            <i class="fas fa-file-alt"></i> TXT
+                                                        </a>
+                                                    </div>
+
+                                                    <!-- Nota de Crédito para Boleta -->
+                                                    <div class="mt-2">
+                                                        <a th:if="${!pedido.boleta.anulada}"
+                                                            th:href="@{/pedidos/{id}/emitir-nota-credito(id=${pedido.id})}"
+                                                            class="btn btn-outline-danger btn-sm"
+                                                            onclick="return confirm('¿Estás seguro de anular esta boleta con una nota de crédito?')">
+                                                            <i class="fas fa-file-invoice"></i> Anular con NC
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- FACTURA -->
+                                    <div class="col-md-6">
+                                        <div class="card h-100">
+                                            <div class="card-body text-center">
+                                                <h5>
+                                                    <i class="fas fa-file-invoice"></i> Factura
+                                                </h5>
+
+                                                <!-- Sin Factura -->
+                                                <div th:if="${pedido.factura == null}">
+
+                                                    <a class="btn btn-primary" th:if="${(pedido.estado.name() == 'REGISTRADO'
+              or pedido.estado.name() == 'EN_PROCESO')
+              and pedido.cliente.dni != null
+              and pedido.cliente.dni.length() == 11}" th:href="@{/pedidos/{id}/emitir-factura(id=${pedido.id})}">
+
+                                                        <i class="fas fa-file-invoice"></i>
+                                                        Emitir Factura
+                                                    </a>
+
+                                                </div>
+
+                                                <!-- Con Factura -->
+                                                <div th:if="${pedido.factura != null}">
+                                                    <div class="mb-2">
+                                                        <span class="badge bg-info" style="font-size: 1.1rem;">
+                                                            <i class="fas fa-check-circle"></i>
+                                                            <span th:text="${pedido.factura.numeroFactura}"></span>
+                                                        </span>
+                                                        <span th:if="${pedido.factura.anulada}"
+                                                            class="badge bg-danger ms-2">
+                                                            <i class="fas fa-ban"></i> ANULADA
+                                                        </span>
+                                                    </div>
+
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <a th:href="@{/pedidos/{id}/descargar-pdf-factura(id=${pedido.id})}"
+                                                            class="btn btn-danger" title="Descargar PDF">
+                                                            <i class="fas fa-file-pdf"></i> PDF
+                                                        </a>
+                                                        <a th:href="@{/pedidos/{id}/descargar-xml-factura(id=${pedido.id})}"
+                                                            class="btn btn-warning" title="Descargar XML">
+                                                            <i class="fas fa-file-code"></i> XML
+                                                        </a>
+                                                    </div>
+
+                                                    <!-- Nota de Crédito para Factura -->
+                                                    <div class="mt-2">
+                                                        <a th:if="${!pedido.factura.anulada}"
+                                                            th:href="@{/pedidos/{id}/emitir-nota-credito-factura(id=${pedido.id})}"
+                                                            class="btn btn-outline-danger btn-sm"
+                                                            onclick="return confirm('¿Estás seguro de anular esta factura con una nota de crédito?')">
+                                                            <i class="fas fa-file-invoice"></i> Anular con NC
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ====== TABLA DE SERVICIOS ====== -->
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <i class="fas fa-list"></i> Detalle de Servicios
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover mb-0">
+                                        <thead class="table-primary">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Servicio</th>
+                                                <th>Peso</th>
+                                                <th>Color</th>
+                                                <th>Precio/kg</th>
+                                                <th class="text-end">Subtotal</th>
+                                                <th>Observaciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr th:each="detalle, stat : ${pedido.detalles}">
+                                                <td th:text="${stat.index + 1}"></td>
+                                                <td th:text="${detalle.servicio.nameService}"></td>
+                                                <td th:text="${detalle.peso} + ' kg'"></td>
+                                                <td>
+                                                    <span class="badge"
+                                                        th:style="'background-color: ' + ${detalle.color} + '; color: white;'"
+                                                        th:text="${detalle.color}">
+                                                    </span>
+                                                </td>
+                                                <td
+                                                    th:text="'S/ ' + ${#numbers.formatDecimal(detalle.servicio.precio, 1, 2)}">
+                                                </td>
+                                                <td class="text-end"
+                                                    th:text="'S/ ' + ${#numbers.formatDecimal(detalle.subtotal, 1, 2)}">
+                                                </td>
+                                                <td th:text="${detalle.observaciones}"></td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="table-primary">
+                                                <th colspan="5" class="text-end">
+                                                    <strong>TOTAL:</strong>
+                                                </th>
+                                                <th colspan="2" class="text-end"
+                                                    th:text="'S/ ' + ${#numbers.formatDecimal(pedido.montoTotal, 1, 2)}">
+                                                </th>
+                                            </tr>
+                                            <tr th:if="${pedido.boleta != null}" class="table-success">
+                                                <td colspan="5" class="text-end">
+                                                    <strong>Boleta:</strong>
+                                                </td>
+                                                <td colspan="2" th:text="${pedido.boleta.numeroBoleta}"></td>
+                                            </tr>
+                                            <tr th:if="${pedido.factura != null}" class="table-info">
+                                                <td colspan="5" class="text-end">
+                                                    <strong>Factura:</strong>
+                                                </td>
+                                                <td colspan="2" th:text="${pedido.factura.numeroFactura}"></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ====== UBICACIÓN Y ACCIONES ====== -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-warning text-dark">
+                                <i class="fas fa-map-marker-alt"></i> Ubicación
+                            </div>
+                            <div class="card-body">
+                                <div th:if="${pedido.ubicacion != null}">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <small class="text-muted">Código</small>
+                                            <div><strong th:text="${pedido.ubicacion.codigoUbicacion}"></strong></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-muted">Estante / Balda</small>
+                                            <div><strong
+                                                    th:text="${pedido.ubicacion.estante} + ' / ' + ${pedido.ubicacion.balda}"></strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div th:unless="${pedido.ubicacion != null}">
+                                    <p class="text-muted mb-0">Sin ubicación asignada</p>
+                                    <a th:href="@{/pedidos/asignar-ubicacion/__${pedido.id}__}"
+                                        class="btn btn-warning btn-sm mt-2">
+                                        <i class="fas fa-plus"></i> Asignar Ubicación
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <i class="fas fa-cogs"></i> Acciones
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex flex-wrap gap-2">
+                                    <!-- Cambiar Estado -->
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-secondary dropdown-toggle"
+                                            data-bs-toggle="dropdown">
+                                            <i class="fas fa-exchange-alt"></i> Cambiar Estado
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li
+                                                th:each="est : ${T(dev.jhuanca.facturacion.enums.EstadoPedido).values()}">
+                                                <a class="dropdown-item"
+                                                    th:href="@{/pedidos/cambiar-estado/{id}(id=${pedido.id}, estado=${est})}"
+                                                    th:classappend="${est == pedido.estado ? 'active' : ''}"
+                                                    th:text="${est}">
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <!-- WhatsApp -->
+
+
+                                    <!-- Observaciones Generales -->
+                                    <div th:if="${pedido.observacionesGenerales != null}" class="w-100 mt-2">
+                                        <small class="text-muted">Observaciones:</small>
+                                        <p class="mb-0" th:text="${pedido.observacionesGenerales}"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    </div>
+
+    <!-- ====== SCRIPTS ====== -->
+    <script>
+        function enviarWhatsApp(id) {
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+            fetch('/pedidos/' + id + '/whatsapp-link')
+                .then(response => {
+                    if (!response.ok) throw new Error('Error al generar el enlace');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                        return;
+                    }
+                    window.open(data.link, '_blank');
+                })
+                .catch(error => {
+                    alert('Error al abrir WhatsApp: ' + error.message);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                });
+        }
+    </script>
 </body>
 
 </html>

@@ -284,7 +284,6 @@ public class PedidoController {
 
             pedido = pedidoRepository.save(pedido);
 
-
             List<DetallePedido> detalles = new ArrayList<>();
             int maxSize = servicioIds.size();
 
@@ -359,7 +358,6 @@ public class PedidoController {
                 response.put("mensaje", "Un pedido finalizado solo puede pasar a ENTREGADO.");
                 return ResponseEntity.badRequest().body(response);
             }
-            
 
             pedido.setEstado(estado);
 
@@ -572,5 +570,135 @@ public class PedidoController {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @GetMapping("/{id}/emitir-nota-credito")
+    public String emitirNotaCredito(
+            @PathVariable Long id,
+            @RequestParam(required = false) String codigoMotivo,
+            @RequestParam(required = false) String motivo,
+            RedirectAttributes redirectAttributes) {
+
+        try {
+            Pedido pedido = pedidoRepository.findById(id)
+                    .orElseThrow(() -> new Exception("Pedido no encontrado"));
+
+            // 1️⃣ Validar que tenga boleta
+            if (pedido.getBoleta() == null) {
+                redirectAttributes.addFlashAttribute("error",
+                        "El pedido no tiene boleta emitida. No se puede generar nota de crédito.");
+                return "redirect:/pedidos/detalle/" + id;
+            }
+
+            // 2️⃣ Validar que la boleta no esté ya anulada
+            if (pedido.getBoleta().isAnulada() == false && pedido.getBoleta().isAnulada()) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Esta boleta ya fue anulada con una nota de crédito.");
+                return "redirect:/pedidos/detalle/" + id;
+            }
+
+            // 3️⃣ Usar valores por defecto si no se especifican
+            String motivoCodigo = codigoMotivo != null ? codigoMotivo : "01";
+            String motivoDescripcion = motivo != null ? motivo : "ANULACION DE LA OPERACION";
+
+            // 4️⃣ Emitir nota de crédito
+            String ticket = sunatService.generarYEnviarNotaCredito(
+                    pedido,
+                    motivoCodigo,
+                    motivoDescripcion);
+
+            // 5️⃣ Mensaje de éxito
+            redirectAttributes.addFlashAttribute("success",
+                    "✅ Nota de Crédito emitida correctamente.\n" +
+                            "📄 Número: " + pedido.getBoleta().getNumeroBoleta() + "\n" +
+                            "🎫 Ticket: " + ticket);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error",
+                    "❌ Error al emitir nota de crédito: " + e.getMessage());
+        }
+
+        return "redirect:/pedidos/detalle/" + id;
+    }
+
+    // En PedidoController.java - Agregar este método
+
+    @GetMapping("/{id}/emitir-factura")
+    public String emitirFactura(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            Pedido pedido = pedidoRepository.findById(id)
+                    .orElseThrow(() -> new Exception("Pedido no encontrado"));
+
+            // Validar que tenga cliente con RUC
+            Cliente cliente = pedido.getCliente();
+            if (cliente.getDni() == null || cliente.getDni().length() != 11) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Para emitir factura, el cliente debe tener RUC (11 dígitos)");
+                return "redirect:/pedidos/detalle/" + id;
+            }
+
+            // Generar número de factura
+            String numeroFactura = sunatService.generarNumeroFactura();
+            System.out.println("📄 Número de Factura: " + numeroFactura);
+
+            // Emitir factura
+            String ticket = sunatService.generarYEnviarFactura(pedido, numeroFactura);
+
+            redirectAttributes.addFlashAttribute("success",
+                    "✅ Factura " + numeroFactura + " emitida correctamente. Ticket: " + ticket);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error",
+                    "❌ Error al emitir factura: " + e.getMessage());
+        }
+
+        return "redirect:/pedidos/detalle/" + id;
+    }
+
+    // En PedidoController.java - AGREGAR ESTE MÉTODO
+
+    @GetMapping("/{id}/emitir-nota-credito-factura")
+    public String emitirNotaCreditoFactura(
+            @PathVariable Long id,
+            @RequestParam(required = false) String codigoMotivo,
+            @RequestParam(required = false) String motivo,
+            RedirectAttributes redirectAttributes) {
+
+        try {
+            Pedido pedido = pedidoRepository.findById(id)
+                    .orElseThrow(() -> new Exception("Pedido no encontrado"));
+
+            if (pedido.getFactura() == null) {
+                redirectAttributes.addFlashAttribute("error",
+                        "El pedido no tiene factura emitida");
+                return "redirect:/pedidos/detalle/" + id;
+            }
+
+            if (pedido.getFactura().isAnulada()) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Esta factura ya fue anulada");
+                return "redirect:/pedidos/detalle/" + id;
+            }
+
+            String motivoCodigo = codigoMotivo != null ? codigoMotivo : "01";
+            String motivoDescripcion = motivo != null ? motivo : "ANULACION DE LA OPERACION";
+
+            String ticket = sunatService.generarYEnviarNotaCreditoFactura(
+                    pedido,
+                    motivoCodigo,
+                    motivoDescripcion);
+
+            redirectAttributes.addFlashAttribute("success",
+                    "✅ Nota de Crédito de Factura emitida correctamente. Ticket: " + ticket);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error",
+                    "❌ Error al emitir nota de crédito: " + e.getMessage());
+        }
+
+        return "redirect:/pedidos/detalle/" + id;
     }
 }

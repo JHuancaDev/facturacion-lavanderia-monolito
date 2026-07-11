@@ -52,6 +52,9 @@ public class Pedido {
     private Boleta boleta;
 
     @OneToOne(mappedBy = "pedido")
+    private Factura factura;
+
+    @OneToOne(mappedBy = "pedido")
     private UbicacionRopa ubicacion;
     
     public void calcularTotal() {
