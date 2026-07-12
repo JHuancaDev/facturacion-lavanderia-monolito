@@ -15,6 +15,7 @@ import dev.jhuanca.facturacion.repository.PedidoRepository;
 import dev.jhuanca.facturacion.repository.ServiciosRepository;
 import dev.jhuanca.facturacion.repository.UbicacionRopaRepository;
 import dev.jhuanca.facturacion.service.BoletaPdfService;
+import dev.jhuanca.facturacion.service.FacturaPdfService;
 import dev.jhuanca.facturacion.service.SunatService;
 import dev.jhuanca.facturacion.service.WhatsAppService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -700,5 +701,59 @@ public class PedidoController {
         }
 
         return "redirect:/pedidos/detalle/" + id;
+    }
+    // En PedidoController.java - Agregar estos métodos
+
+    @Autowired
+    private FacturaPdfService facturaPdfService;
+
+    // Descargar PDF de Factura
+    @GetMapping("/{id}/descargar-pdf-factura")
+    public ResponseEntity<byte[]> descargarPdfFactura(@PathVariable Long id) {
+        try {
+            Pedido pedido = pedidoRepository.findById(id).orElse(null);
+            if (pedido == null || pedido.getFactura() == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            byte[] pdfBytes = facturaPdfService.generarPdfFactura(pedido);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment",
+                    "factura_" + pedido.getFactura().getNumeroFactura() + ".pdf");
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // Descargar XML de Factura
+    @GetMapping("/{id}/descargar-xml-factura")
+    public ResponseEntity<byte[]> descargarXmlFactura(@PathVariable Long id) {
+        try {
+            Pedido pedido = pedidoRepository.findById(id).orElse(null);
+            if (pedido == null || pedido.getFactura() == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            String xml = sunatService.generarXmlFactura(pedido, pedido.getFactura().getNumeroFactura());
+
+            byte[] xmlBytes = xml.getBytes(StandardCharsets.UTF_8);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_XML);
+            headers.setContentDispositionFormData("attachment",
+                    "factura_" + pedido.getFactura().getNumeroFactura() + ".xml");
+
+            return new ResponseEntity<>(xmlBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

@@ -24,11 +24,11 @@ public class NotaCredito {
     private Long id;
     
     @OneToOne
-    @JoinColumn(name = "boleta_id", nullable = false)
+    @JoinColumn(name = "boleta_id", nullable = true)
     private Boleta boleta;
 
     @OneToOne
-    @JoinColumn(name = "factura_id")
+    @JoinColumn(name = "factura_id", nullable = true)
     private Factura factura;
     
     @Column(nullable = false, unique = true)

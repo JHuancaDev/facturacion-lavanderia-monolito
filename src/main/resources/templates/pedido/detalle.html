@@ -156,6 +156,8 @@
 
                                                 </div>
 
+                                                <!-- En pedido/detalle.html - Sección de Factura -->
+
                                                 <!-- Con Factura -->
                                                 <div th:if="${pedido.factura != null}">
                                                     <div class="mb-2">
@@ -169,6 +171,7 @@
                                                         </span>
                                                     </div>
 
+                                                    <!-- Botones de descarga para factura -->
                                                     <div class="btn-group btn-group-sm" role="group">
                                                         <a th:href="@{/pedidos/{id}/descargar-pdf-factura(id=${pedido.id})}"
                                                             class="btn btn-danger" title="Descargar PDF">
