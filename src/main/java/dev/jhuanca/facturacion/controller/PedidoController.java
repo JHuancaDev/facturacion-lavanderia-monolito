@@ -1,34 +1,25 @@
 // src/main/java/dev/jhuanca/facturacion/controller/PedidoController.java
 package dev.jhuanca.facturacion.controller;
 
-import dev.jhuanca.facturacion.entity.Boleta;
 import dev.jhuanca.facturacion.entity.Cliente;
 import dev.jhuanca.facturacion.entity.DetallePedido;
 import dev.jhuanca.facturacion.entity.Pedido;
 import dev.jhuanca.facturacion.entity.Servicios;
 import dev.jhuanca.facturacion.entity.UbicacionRopa;
 import dev.jhuanca.facturacion.enums.EstadoPedido;
-import dev.jhuanca.facturacion.repository.BoletaRepository;
 import dev.jhuanca.facturacion.repository.ClienteRepository;
 import dev.jhuanca.facturacion.repository.DetallePedidoRepository;
 import dev.jhuanca.facturacion.repository.PedidoRepository;
 import dev.jhuanca.facturacion.repository.ServiciosRepository;
 import dev.jhuanca.facturacion.repository.UbicacionRopaRepository;
-import dev.jhuanca.facturacion.service.BoletaPdfService;
-import dev.jhuanca.facturacion.service.FacturaPdfService;
-import dev.jhuanca.facturacion.service.SunatService;
 import dev.jhuanca.facturacion.service.WhatsAppService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -59,15 +50,6 @@ public class PedidoController {
     @Autowired
     private WhatsAppService whatsAppService;
 
-    @Autowired
-    private BoletaRepository boletaRepository;
-
-    @Autowired
-    private SunatService sunatService;
-
-    @Autowired
-    private BoletaPdfService boletaPdfService;
-
     @GetMapping
     public String listarPedidos(Model model) {
         model.addAttribute("pedidos", pedidoRepository.findAllByOrderByIdDesc());
@@ -90,113 +72,6 @@ public class PedidoController {
         model.addAttribute("clienteDefaultDni", CLIENTE_DEFAULT_DNI);
         model.addAttribute("template", "pedido/form");
         return "layout/base";
-    }
-
-    @GetMapping("/{id}/descargar-boleta")
-    public ResponseEntity<byte[]> descargarBoleta(@PathVariable Long id) {
-        try {
-            Pedido pedido = pedidoRepository.findById(id).orElse(null);
-            if (pedido == null || pedido.getBoleta() == null) {
-                return ResponseEntity.notFound().build();
-            }
-            StringBuilder contenido = new StringBuilder();
-            contenido.append("========================================\n");
-            contenido.append("         BOLETA DE VENTA              \n");
-            contenido.append("========================================\n");
-            contenido.append("Número: ").append(pedido.getBoleta().getNumeroBoleta()).append("\n");
-            contenido.append("Fecha: ").append(pedido.getBoleta().getFechaEmision()).append("\n");
-            contenido.append("----------------------------------------\n");
-            contenido.append("Cliente: ").append(pedido.getCliente().getNombres()).append(" ");
-            contenido.append(pedido.getCliente().getApellidoPaterno()).append("\n");
-            contenido.append("DNI: ").append(pedido.getCliente().getDni()).append("\n");
-            contenido.append("Teléfono: ").append(pedido.getCliente().getTelefono()).append("\n");
-            contenido.append("----------------------------------------\n");
-            contenido.append("DETALLE:\n");
-
-            for (DetallePedido detalle : pedido.getDetalles()) {
-                contenido.append("  - ").append(detalle.getServicio().getNameService());
-                contenido.append(" (").append(detalle.getPeso()).append(" kg)");
-                contenido.append(" S/ ").append(detalle.getSubtotal()).append("\n");
-            }
-
-            contenido.append("----------------------------------------\n");
-            contenido.append("TOTAL: S/ ").append(pedido.getMontoTotal()).append("\n");
-            contenido.append("========================================\n");
-            contenido.append("¡Gracias por su preferencia!\n");
-
-            byte[] contenidoBytes = contenido.toString().getBytes("UTF-8");
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.TEXT_PLAIN);
-            headers.setContentDispositionFormData("attachment",
-                    "boleta_" + pedido.getBoleta().getNumeroBoleta() + ".txt");
-
-            return new ResponseEntity<>(contenidoBytes, headers, HttpStatus.OK);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    @GetMapping("/{id}/emitir-boleta")
-    public String emitirBoleta(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            Pedido pedido = pedidoRepository.findById(id).orElse(null);
-            if (pedido == null) {
-                redirectAttributes.addFlashAttribute("error", "Pedido no encontrado");
-                return "redirect:/pedidos";
-            }
-
-            if (boletaRepository.findByPedidoId(id).isPresent()) {
-                redirectAttributes.addFlashAttribute("error", "Este pedido ya tiene boleta emitida");
-                return "redirect:/pedidos/detalle/" + id;
-            }
-
-            String numeroBoleta = sunatService.generarNumeroBoleta();
-            System.out.println("📄 Número de Boleta: " + numeroBoleta);
-
-            String ticket = sunatService.generarYEnviarBoleta(pedido, numeroBoleta);
-            System.out.println("✅ Ticket recibido: " + ticket);
-
-            Boleta boleta = new Boleta();
-            boleta.setPedido(pedido);
-            boleta.setNumeroBoleta(numeroBoleta);
-            boleta.setTotal(pedido.getMontoTotal());
-            boleta.setSerie("B001");
-
-            String[] partes = numeroBoleta.split("-");
-            if (partes.length == 2) {
-                boleta.setCorrelativo(Integer.parseInt(partes[1]));
-            }
-
-            boleta.setRucEmisor("10771318199");
-            boleta.setRazonSocialEmisor("LAVANDERIA S.A.C.");
-
-            boleta.setClienteTipoDoc("DNI");
-            boleta.setClienteNumeroDoc(pedido.getCliente().getDni());
-            boleta.setClienteNombre(pedido.getCliente().getNombres() + " " + pedido.getCliente().getApellidoPaterno());
-
-            boleta.setEnviadoSunat(true);
-            boleta.setFechaEmision(LocalDateTime.now());
-            boleta.setFechaEnvioSunat(LocalDateTime.now());
-            boleta.setTicket(ticket);
-            boleta.setSunatRespuesta("{\"success\": true, \"ticket\": \"" + ticket + "\"}");
-
-            boletaRepository.save(boleta);
-
-            pedido.setBoleta(boleta);
-            pedidoRepository.save(pedido);
-
-            redirectAttributes.addFlashAttribute("success",
-                    "Boleta " + numeroBoleta + " emitida correctamente. Ticket: " + ticket);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            redirectAttributes.addFlashAttribute("error", "Error al emitir boleta: " + e.getMessage());
-        }
-
-        return "redirect:/pedidos/detalle/" + id;
     }
 
     @PostMapping("/guardar")
@@ -525,235 +400,4 @@ public class PedidoController {
         return "redirect:/pedidos";
     }
 
-    @GetMapping("/{id}/descargar-pdf")
-    public ResponseEntity<byte[]> descargarPdf(@PathVariable Long id) {
-        try {
-            Pedido pedido = pedidoRepository.findById(id).orElse(null);
-            if (pedido == null || pedido.getBoleta() == null) {
-                return ResponseEntity.notFound().build();
-            }
-
-            byte[] pdfBytes = boletaPdfService.generarPdfBoleta(pedido);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("attachment",
-                    "boleta_" + pedido.getBoleta().getNumeroBoleta() + ".pdf");
-
-            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    @GetMapping("/{id}/descargar-xml")
-    public ResponseEntity<byte[]> descargarXml(@PathVariable Long id) {
-        try {
-            Pedido pedido = pedidoRepository.findById(id).orElse(null);
-            if (pedido == null || pedido.getBoleta() == null) {
-                return ResponseEntity.notFound().build();
-            }
-
-            String xml = sunatService.generarXmlBoleta(pedido, pedido.getBoleta().getNumeroBoleta());
-
-            byte[] xmlBytes = xml.getBytes(StandardCharsets.UTF_8);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_XML);
-            headers.setContentDispositionFormData("attachment",
-                    "boleta_" + pedido.getBoleta().getNumeroBoleta() + ".xml");
-
-            return new ResponseEntity<>(xmlBytes, headers, HttpStatus.OK);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    @GetMapping("/{id}/emitir-nota-credito")
-    public String emitirNotaCredito(
-            @PathVariable Long id,
-            @RequestParam(required = false) String codigoMotivo,
-            @RequestParam(required = false) String motivo,
-            RedirectAttributes redirectAttributes) {
-
-        try {
-            Pedido pedido = pedidoRepository.findById(id)
-                    .orElseThrow(() -> new Exception("Pedido no encontrado"));
-
-            // 1️⃣ Validar que tenga boleta
-            if (pedido.getBoleta() == null) {
-                redirectAttributes.addFlashAttribute("error",
-                        "El pedido no tiene boleta emitida. No se puede generar nota de crédito.");
-                return "redirect:/pedidos/detalle/" + id;
-            }
-
-            // 2️⃣ Validar que la boleta no esté ya anulada
-            if (pedido.getBoleta().isAnulada() == false && pedido.getBoleta().isAnulada()) {
-                redirectAttributes.addFlashAttribute("error",
-                        "Esta boleta ya fue anulada con una nota de crédito.");
-                return "redirect:/pedidos/detalle/" + id;
-            }
-
-            // 3️⃣ Usar valores por defecto si no se especifican
-            String motivoCodigo = codigoMotivo != null ? codigoMotivo : "01";
-            String motivoDescripcion = motivo != null ? motivo : "ANULACION DE LA OPERACION";
-
-            // 4️⃣ Emitir nota de crédito
-            String ticket = sunatService.generarYEnviarNotaCredito(
-                    pedido,
-                    motivoCodigo,
-                    motivoDescripcion);
-
-            // 5️⃣ Mensaje de éxito
-            redirectAttributes.addFlashAttribute("success",
-                    "✅ Nota de Crédito emitida correctamente.\n" +
-                            "📄 Número: " + pedido.getBoleta().getNumeroBoleta() + "\n" +
-                            "🎫 Ticket: " + ticket);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            redirectAttributes.addFlashAttribute("error",
-                    "❌ Error al emitir nota de crédito: " + e.getMessage());
-        }
-
-        return "redirect:/pedidos/detalle/" + id;
-    }
-
-    // En PedidoController.java - Agregar este método
-
-    @GetMapping("/{id}/emitir-factura")
-    public String emitirFactura(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        try {
-            Pedido pedido = pedidoRepository.findById(id)
-                    .orElseThrow(() -> new Exception("Pedido no encontrado"));
-
-            // Validar que tenga cliente con RUC
-            Cliente cliente = pedido.getCliente();
-            if (cliente.getDni() == null || cliente.getDni().length() != 11) {
-                redirectAttributes.addFlashAttribute("error",
-                        "Para emitir factura, el cliente debe tener RUC (11 dígitos)");
-                return "redirect:/pedidos/detalle/" + id;
-            }
-
-            // Generar número de factura
-            String numeroFactura = sunatService.generarNumeroFactura();
-            System.out.println("📄 Número de Factura: " + numeroFactura);
-
-            // Emitir factura
-            String ticket = sunatService.generarYEnviarFactura(pedido, numeroFactura);
-
-            redirectAttributes.addFlashAttribute("success",
-                    "✅ Factura " + numeroFactura + " emitida correctamente. Ticket: " + ticket);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            redirectAttributes.addFlashAttribute("error",
-                    "❌ Error al emitir factura: " + e.getMessage());
-        }
-
-        return "redirect:/pedidos/detalle/" + id;
-    }
-
-    // En PedidoController.java - AGREGAR ESTE MÉTODO
-
-    @GetMapping("/{id}/emitir-nota-credito-factura")
-    public String emitirNotaCreditoFactura(
-            @PathVariable Long id,
-            @RequestParam(required = false) String codigoMotivo,
-            @RequestParam(required = false) String motivo,
-            RedirectAttributes redirectAttributes) {
-
-        try {
-            Pedido pedido = pedidoRepository.findById(id)
-                    .orElseThrow(() -> new Exception("Pedido no encontrado"));
-
-            if (pedido.getFactura() == null) {
-                redirectAttributes.addFlashAttribute("error",
-                        "El pedido no tiene factura emitida");
-                return "redirect:/pedidos/detalle/" + id;
-            }
-
-            if (pedido.getFactura().isAnulada()) {
-                redirectAttributes.addFlashAttribute("error",
-                        "Esta factura ya fue anulada");
-                return "redirect:/pedidos/detalle/" + id;
-            }
-
-            String motivoCodigo = codigoMotivo != null ? codigoMotivo : "01";
-            String motivoDescripcion = motivo != null ? motivo : "ANULACION DE LA OPERACION";
-
-            String ticket = sunatService.generarYEnviarNotaCreditoFactura(
-                    pedido,
-                    motivoCodigo,
-                    motivoDescripcion);
-
-            redirectAttributes.addFlashAttribute("success",
-                    "✅ Nota de Crédito de Factura emitida correctamente. Ticket: " + ticket);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            redirectAttributes.addFlashAttribute("error",
-                    "❌ Error al emitir nota de crédito: " + e.getMessage());
-        }
-
-        return "redirect:/pedidos/detalle/" + id;
-    }
-    // En PedidoController.java - Agregar estos métodos
-
-    @Autowired
-    private FacturaPdfService facturaPdfService;
-
-    // Descargar PDF de Factura
-    @GetMapping("/{id}/descargar-pdf-factura")
-    public ResponseEntity<byte[]> descargarPdfFactura(@PathVariable Long id) {
-        try {
-            Pedido pedido = pedidoRepository.findById(id).orElse(null);
-            if (pedido == null || pedido.getFactura() == null) {
-                return ResponseEntity.notFound().build();
-            }
-
-            byte[] pdfBytes = facturaPdfService.generarPdfFactura(pedido);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("attachment",
-                    "factura_" + pedido.getFactura().getNumeroFactura() + ".pdf");
-
-            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    // Descargar XML de Factura
-    @GetMapping("/{id}/descargar-xml-factura")
-    public ResponseEntity<byte[]> descargarXmlFactura(@PathVariable Long id) {
-        try {
-            Pedido pedido = pedidoRepository.findById(id).orElse(null);
-            if (pedido == null || pedido.getFactura() == null) {
-                return ResponseEntity.notFound().build();
-            }
-
-            String xml = sunatService.generarXmlFactura(pedido, pedido.getFactura().getNumeroFactura());
-
-            byte[] xmlBytes = xml.getBytes(StandardCharsets.UTF_8);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_XML);
-            headers.setContentDispositionFormData("attachment",
-                    "factura_" + pedido.getFactura().getNumeroFactura() + ".xml");
-
-            return new ResponseEntity<>(xmlBytes, headers, HttpStatus.OK);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
-        }
-    }
 }

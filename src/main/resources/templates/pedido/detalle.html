@@ -18,7 +18,6 @@
             </div>
 
             <div class="card-body">
-                <!-- ====== INFORMACIÓN DEL CLIENTE ====== -->
                 <div class="row mb-4">
                     <div class="col-md-12">
                         <div class="card bg-light">
@@ -63,7 +62,6 @@
                     </div>
                 </div>
 
-                <!-- ====== SECCIÓN DE DOCUMENTOS ELECTRÓNICOS ====== -->
                 <div class="row mb-4">
                     <div class="col-md-12">
                         <div class="card">
@@ -72,7 +70,6 @@
                             </div>
                             <div class="card-body">
                                 <div class="row">
-                                    <!-- BOLETA -->
                                     <div class="col-md-6">
                                         <div class="card h-100">
                                             <div class="card-body text-center">
@@ -80,19 +77,21 @@
                                                     <i class="fas fa-receipt"></i> Boleta
                                                 </h5>
 
-                                                <!-- Sin Boleta -->
                                                 <div th:if="${pedido.boleta == null}">
-
-                                                    <a class="btn btn-success" th:if="${pedido.estado.name() == 'REGISTRADO'
-            or pedido.estado.name() == 'EN_PROCESO'}" th:href="@{/pedidos/{id}/emitir-boleta(id=${pedido.id})}">
-
+                                                    <a class="btn btn-success" th:if="${(pedido.estado.name() == 'REGISTRADO' or pedido.estado.name() == 'EN_PROCESO') 
+                                                       and pedido.cliente.dni != null 
+                                                       and pedido.cliente.dni.length() < 11}"
+                                                        th:href="@{/boletas/{id}/emitir-boleta(id=${pedido.id})}">
                                                         <i class="fas fa-plus"></i>
                                                         Emitir Boleta
                                                     </a>
-
+                                                    <div th:if="${pedido.cliente.dni != null and pedido.cliente.dni.length() == 11}"
+                                                        class="text-warning">
+                                                        <i class="fas fa-exclamation-triangle"></i>
+                                                        <small>No se puede emitir boleta para RUC</small>
+                                                    </div>
                                                 </div>
 
-                                                <!-- Con Boleta -->
                                                 <div th:if="${pedido.boleta != null}">
                                                     <div class="mb-2">
                                                         <span class="badge bg-success" style="font-size: 1.1rem;">
@@ -106,24 +105,23 @@
                                                     </div>
 
                                                     <div class="btn-group btn-group-sm" role="group">
-                                                        <a th:href="@{/pedidos/{id}/descargar-pdf(id=${pedido.id})}"
+                                                        <a th:href="@{/boletas/{id}/descargar-pdf(id=${pedido.id})}"
                                                             class="btn btn-danger" title="Descargar PDF">
                                                             <i class="fas fa-file-pdf"></i> PDF
                                                         </a>
-                                                        <a th:href="@{/pedidos/{id}/descargar-xml(id=${pedido.id})}"
+                                                        <a th:href="@{/boletas/{id}/descargar-xml(id=${pedido.id})}"
                                                             class="btn btn-warning" title="Descargar XML">
                                                             <i class="fas fa-file-code"></i> XML
                                                         </a>
-                                                        <a th:href="@{/pedidos/{id}/descargar-boleta(id=${pedido.id})}"
+                                                        <a th:href="@{/boletas/{id}/descargar-boleta(id=${pedido.id})}"
                                                             class="btn btn-info" title="Descargar TXT">
                                                             <i class="fas fa-file-alt"></i> TXT
                                                         </a>
                                                     </div>
 
-                                                    <!-- Nota de Crédito para Boleta -->
                                                     <div class="mt-2">
                                                         <a th:if="${!pedido.boleta.anulada}"
-                                                            th:href="@{/pedidos/{id}/emitir-nota-credito(id=${pedido.id})}"
+                                                            th:href="@{/boletas/{id}/emitir-nota-credito(id=${pedido.id})}"
                                                             class="btn btn-outline-danger btn-sm"
                                                             onclick="return confirm('¿Estás seguro de anular esta boleta con una nota de crédito?')">
                                                             <i class="fas fa-file-invoice"></i> Anular con NC
@@ -134,7 +132,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- FACTURA -->
                                     <div class="col-md-6">
                                         <div class="card h-100">
                                             <div class="card-body text-center">
@@ -142,23 +139,28 @@
                                                     <i class="fas fa-file-invoice"></i> Factura
                                                 </h5>
 
-                                                <!-- Sin Factura -->
                                                 <div th:if="${pedido.factura == null}">
-
-                                                    <a class="btn btn-primary" th:if="${(pedido.estado.name() == 'REGISTRADO'
-              or pedido.estado.name() == 'EN_PROCESO')
-              and pedido.cliente.dni != null
-              and pedido.cliente.dni.length() == 11}" th:href="@{/pedidos/{id}/emitir-factura(id=${pedido.id})}">
-
+                                                    <!-- VALIDACIÓN: Solo mostrar botón de factura si es RUC (11 dígitos) -->
+                                                    <a class="btn btn-primary" th:if="${(pedido.estado.name() == 'REGISTRADO' or pedido.estado.name() == 'EN_PROCESO')
+                                                       and pedido.cliente.dni != null
+                                                       and pedido.cliente.dni.length() == 11}"
+                                                        th:href="@{/facturas/{id}/emitir-factura(id=${pedido.id})}">
                                                         <i class="fas fa-file-invoice"></i>
                                                         Emitir Factura
                                                     </a>
-
+                                                    <!-- Mensaje cuando no se puede emitir factura por ser DNI -->
+                                                    <div th:if="${pedido.cliente.dni != null and pedido.cliente.dni.length() < 11}"
+                                                        class="text-warning">
+                                                        <i class="fas fa-exclamation-triangle"></i>
+                                                        <small>Se necesita RUC (11 dígitos) para emitir factura</small>
+                                                    </div>
+                                                    <!-- Mensaje cuando el DNI está vacío -->
+                                                    <div th:if="${pedido.cliente.dni == null}" class="text-muted">
+                                                        <i class="fas fa-info-circle"></i>
+                                                        <small>Cliente sin documento registrado</small>
+                                                    </div>
                                                 </div>
 
-                                                <!-- En pedido/detalle.html - Sección de Factura -->
-
-                                                <!-- Con Factura -->
                                                 <div th:if="${pedido.factura != null}">
                                                     <div class="mb-2">
                                                         <span class="badge bg-info" style="font-size: 1.1rem;">
@@ -171,22 +173,20 @@
                                                         </span>
                                                     </div>
 
-                                                    <!-- Botones de descarga para factura -->
                                                     <div class="btn-group btn-group-sm" role="group">
-                                                        <a th:href="@{/pedidos/{id}/descargar-pdf-factura(id=${pedido.id})}"
+                                                        <a th:href="@{/facturas/{id}/descargar-pdf-factura(id=${pedido.id})}"
                                                             class="btn btn-danger" title="Descargar PDF">
                                                             <i class="fas fa-file-pdf"></i> PDF
                                                         </a>
-                                                        <a th:href="@{/pedidos/{id}/descargar-xml-factura(id=${pedido.id})}"
+                                                        <a th:href="@{/facturas/{id}/descargar-xml-factura(id=${pedido.id})}"
                                                             class="btn btn-warning" title="Descargar XML">
                                                             <i class="fas fa-file-code"></i> XML
                                                         </a>
                                                     </div>
 
-                                                    <!-- Nota de Crédito para Factura -->
                                                     <div class="mt-2">
                                                         <a th:if="${!pedido.factura.anulada}"
-                                                            th:href="@{/pedidos/{id}/emitir-nota-credito-factura(id=${pedido.id})}"
+                                                            th:href="@{/facturas/{id}/emitir-nota-credito-factura(id=${pedido.id})}"
                                                             class="btn btn-outline-danger btn-sm"
                                                             onclick="return confirm('¿Estás seguro de anular esta factura con una nota de crédito?')">
                                                             <i class="fas fa-file-invoice"></i> Anular con NC
@@ -202,7 +202,6 @@
                     </div>
                 </div>
 
-                <!-- ====== TABLA DE SERVICIOS ====== -->
                 <div class="row mb-3">
                     <div class="col-md-12">
                         <div class="card">
@@ -272,7 +271,6 @@
                     </div>
                 </div>
 
-                <!-- ====== UBICACIÓN Y ACCIONES ====== -->
                 <div class="row">
                     <div class="col-md-6">
                         <div class="card">
@@ -312,7 +310,6 @@
                             </div>
                             <div class="card-body">
                                 <div class="d-flex flex-wrap gap-2">
-                                    <!-- Cambiar Estado -->
                                     <div class="btn-group">
                                         <button type="button" class="btn btn-secondary dropdown-toggle"
                                             data-bs-toggle="dropdown">
@@ -330,10 +327,8 @@
                                         </ul>
                                     </div>
 
-                                    <!-- WhatsApp -->
 
 
-                                    <!-- Observaciones Generales -->
                                     <div th:if="${pedido.observacionesGenerales != null}" class="w-100 mt-2">
                                         <small class="text-muted">Observaciones:</small>
                                         <p class="mb-0" th:text="${pedido.observacionesGenerales}"></p>
@@ -347,7 +342,6 @@
         </div>
     </div>
 
-    <!-- ====== SCRIPTS ====== -->
     <script>
         function enviarWhatsApp(id) {
             const btn = event.currentTarget;
